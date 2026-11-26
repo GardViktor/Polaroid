@@ -39,6 +39,26 @@ class ExtratorFotosTest {
     }
 
     @Test
+    fun `soma quando o anuncio junta pacotes com mais`() {
+        assertEquals(40, fotos("Filme Instax Mini 20 Fotos + 20 Fotos Black Com Caixa De Presente"))
+        assertEquals(30, fotos("Filme Fuji Instax Mini 20 Fotos + 10 Fotos Macaron Para Mini 11 Mini 9"))
+    }
+
+    @Test
+    fun `cartuchos de N poses nao multiplicam de novo o total`() {
+        assertEquals(20, fotos("Filme Instantâneo Fujifilm Instax Mini, Borda Branca, 20 Fotos, 2 Cartuchos de 10 Poses"))
+        assertEquals(30, fotos("Filme Instax Mini 3 Pacotes de 10 Fotos"))
+    }
+
+    @Test
+    fun `titulos reais variados`() {
+        assertEquals(40, fotos("Kit 2x Filme Instax ,Mini Instantâneo Fujifilm ,20 Unidades, 40 Fotos"))
+        assertEquals(10, fotos("Filme Instax Mini Contact Sheet Para 10 Fotos - Fujifilm Para Instax Mini 7; 8; 9; 11; 12"))
+        assertEquals(60, fotos("Kit 60 Fotos Filme Instax Mini Para câmeras e Impressoras Instax Mini"))
+        assertEquals(10, fotos("Filme Instax Mini, Pack Com 10 Fotos, 1 Un, Fujifilm"))
+    }
+
+    @Test
     fun `pacote duplo sem numero vale 20`() {
         assertEquals(20, fotos("Filme Instax Mini Twin Pack"))
         assertEquals(20, fotos("Filme Instax Mini Pacote Duplo Branco"))

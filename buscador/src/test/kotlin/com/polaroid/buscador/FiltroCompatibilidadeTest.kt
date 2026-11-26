@@ -30,6 +30,19 @@ class FiltroCompatibilidadeTest {
     }
 
     @Test
+    fun `para camera ou para impressora indica compatibilidade, nao o produto`() {
+        listOf(
+            "Filme Para Câmera Instax Mini Spray Art, 10 Fotos, 705068238",
+            "Filme para câmera Fujifilm Instax Mini SPRINKLES - 10 fotos",
+            "Kit 60 Fotos Filme Instax Mini Para câmeras e Impressoras Instax Mini",
+            "Filme Instax Mini 20 Fotos + 20 Fotos Black Com Caixa De Presente",
+        ).forEach(::aceita)
+        // Continua rejeitando quando o produto é a câmera ou vem com acessório
+        rejeita("Kit Camera Instax Mini 12 + Bolsa + Filme 10 Foto Cor Azul")
+        rejeita("Álbum para Camera Instax Mini + Filme 20 fotos Instax Mini")
+    }
+
+    @Test
     fun `rejeita cameras e kits com camera`() {
         listOf(
             "Câmera Instantânea Fujifilm Instax Mini 12 - Azul Candy",
