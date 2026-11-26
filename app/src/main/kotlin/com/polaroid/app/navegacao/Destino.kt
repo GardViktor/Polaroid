@@ -7,6 +7,7 @@ import com.polaroid.app.R
 enum class Destino(val rotulo: String, @param:DrawableRes val icone: Int) {
     CALCULADORA("Calcular", R.drawable.ic_calcular),
     BUSCAR("Buscar", R.drawable.ic_buscar),
+    ALBUM("Álbum", R.drawable.ic_album),
     ;
 
     companion object {

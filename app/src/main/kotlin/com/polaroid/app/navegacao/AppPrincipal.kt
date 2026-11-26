@@ -16,6 +16,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import com.polaroid.app.album.AlbumTela
 import com.polaroid.app.busca.BuscarTela
 import com.polaroid.app.calculadora.CalculadoraTela
 
@@ -50,6 +51,7 @@ fun AppPrincipal() {
             when (destinoAtual) {
                 Destino.CALCULADORA -> CalculadoraTela()
                 Destino.BUSCAR -> BuscarTela()
+                Destino.ALBUM -> AlbumTela()
             }
         }
     }
