@@ -2,8 +2,16 @@ plugins {
     kotlin("jvm")
 }
 
+// Bytecode Java 17: compatível com o app Android e com qualquer JDK >= 17
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 kotlin {
-    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
 
 dependencies {

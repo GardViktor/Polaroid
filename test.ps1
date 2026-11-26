@@ -1,5 +1,6 @@
-# Roda os testes unitários dentro de um container Docker (JDK 21 + Gradle),
-# sem precisar de Java/Gradle/Android SDK instalados na máquina.
+# Roda os testes unitários dos módulos Kotlin puros (ex.: calculadora) dentro
+# de um container Docker (JDK 21 + Gradle), sem Java/Gradle/Android SDK locais.
+# O módulo Android (app) é excluído (-PsemAndroid); para ele use ./gradlew test.
 # Uso: ./test.ps1              (todos os testes)
 #      ./test.ps1 :calculadora:test   (tarefa específica)
 
@@ -11,6 +12,6 @@ docker run --rm `
     -e GRADLE_USER_HOME=/home/gradle/.gradle `
     -w /project `
     gradle:8.14-jdk21 `
-    ./gradlew --no-daemon @tarefas
+    ./gradlew --no-daemon -PsemAndroid @tarefas
 
 exit $LASTEXITCODE
