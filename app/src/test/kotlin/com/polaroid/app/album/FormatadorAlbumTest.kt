@@ -33,7 +33,29 @@ class FormatadorAlbumTest {
     }
 
     @Test
-    fun `sem local informa que nao foi registrado`() {
+    fun `sem local e sem motivo conhecido`() {
         assertEquals("Local não registrado", FormatadorAlbum.local(null))
+    }
+
+    @Test
+    fun `sem local mostra o motivo`() {
+        assertEquals(
+            "Sem permissão de localização",
+            FormatadorAlbum.local(null, MotivoSemLocal.SEM_PERMISSAO),
+        )
+        assertEquals(
+            "Localização do celular desligada",
+            FormatadorAlbum.local(null, MotivoSemLocal.LOCALIZACAO_DESLIGADA),
+        )
+        assertEquals(
+            "Local não encontrado a tempo",
+            FormatadorAlbum.local(null, MotivoSemLocal.NAO_ENCONTRADO),
+        )
+    }
+
+    @Test
+    fun `com local o motivo e ignorado`() {
+        val local = LocalFoto(Coordenadas(-23.5613, -46.6565), "Pinheiros, São Paulo")
+        assertEquals("Pinheiros, São Paulo", FormatadorAlbum.local(local, MotivoSemLocal.NAO_ENCONTRADO))
     }
 }

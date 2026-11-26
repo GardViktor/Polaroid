@@ -31,14 +31,14 @@ class AlbumViewModelTest {
     private val pinheiros = Coordenadas(-23.5613, -46.6565)
 
     private val repositorio = RepositorioFalso()
-    private var coordenadas: Coordenadas? = pinheiros
+    private var resultadoLocalizacao: ResultadoLocalizacao = ResultadoLocalizacao.Encontrada(pinheiros)
     private var localizacaoTrava = false
     private var nome: String? = "Pinheiros, São Paulo"
     private var chamadasNome = 0
 
     private val localizacao = ProvedorLocalizacao {
         if (localizacaoTrava) awaitCancellation()
-        coordenadas
+        resultadoLocalizacao
     }
     private val nomeLocal = ProvedorNomeLocal {
         chamadasNome++
@@ -89,20 +89,33 @@ class AlbumViewModelTest {
         assertEquals("tmp/foto.jpg", salva.arquivo)
         assertEquals(agora, salva.dataHora)
         assertEquals(LocalFoto(pinheiros, "Pinheiros, São Paulo"), salva.local)
+        assertNull(salva.motivoSemLocal)
         assertEquals(salva.foto, vm.estado.value.fotos.first())
         assertFalse(vm.estado.value.salvando)
     }
 
     @Test
-    fun `sem permissao de localizacao salva sem local`() = runTest(dispatcher) {
-        coordenadas = null
+    fun `sem permissao de localizacao salva sem local e com o motivo`() = runTest(dispatcher) {
+        resultadoLocalizacao = ResultadoLocalizacao.Indisponivel(MotivoSemLocal.SEM_PERMISSAO)
         val vm = criarViewModel()
         vm.aoAbrirCamera()
         vm.aoFotoCapturada("tmp/foto.jpg")
         advanceUntilIdle()
 
-        assertNull(repositorio.salvas.single().local)
+        val salva = repositorio.salvas.single()
+        assertNull(salva.local)
+        assertEquals(MotivoSemLocal.SEM_PERMISSAO, salva.motivoSemLocal)
         assertEquals(0, chamadasNome)
+    }
+
+    @Test
+    fun `localizacao desligada guarda o motivo`() = runTest(dispatcher) {
+        resultadoLocalizacao = ResultadoLocalizacao.Indisponivel(MotivoSemLocal.LOCALIZACAO_DESLIGADA)
+        val vm = criarViewModel()
+        vm.aoFotoCapturada("tmp/foto.jpg")
+        advanceUntilIdle()
+
+        assertEquals(MotivoSemLocal.LOCALIZACAO_DESLIGADA, repositorio.salvas.single().motivoSemLocal)
     }
 
     @Test
@@ -123,7 +136,9 @@ class AlbumViewModelTest {
         vm.aoFotoCapturada("tmp/foto.jpg")
         advanceUntilIdle()
 
-        assertNull(repositorio.salvas.single().local)
+        val salva = repositorio.salvas.single()
+        assertNull(salva.local)
+        assertEquals(MotivoSemLocal.NAO_ENCONTRADO, salva.motivoSemLocal)
         assertEquals(1, vm.estado.value.fotos.size)
     }
 
@@ -177,6 +192,20 @@ class AlbumViewModelTest {
 
         assertEquals("Pinheiros, São Paulo", vm.estado.value.fotoAberta?.local?.nome)
         assertEquals("Pinheiros, São Paulo", repositorio.locais[foto.id]?.nome)
+    }
+
+    @Test
+    fun `abrir foto sem local mostra o motivo`() = runTest(dispatcher) {
+        val foto = repositorio.adicionar(agora, local = null, motivo = MotivoSemLocal.LOCALIZACAO_DESLIGADA)
+        val vm = criarViewModel()
+        advanceUntilIdle()
+
+        vm.aoAbrirFoto(foto)
+        advanceUntilIdle()
+
+        val aberta = assertNotNull(vm.estado.value.fotoAberta)
+        assertNull(aberta.local)
+        assertEquals(MotivoSemLocal.LOCALIZACAO_DESLIGADA, aberta.motivoSemLocal)
     }
 
     @Test
@@ -247,32 +276,47 @@ class AlbumViewModelTest {
     // --- Repositório em memória ---
 
     private class RepositorioFalso : RepositorioFotos {
-        data class Salva(val arquivo: String, val dataHora: ZonedDateTime, val local: LocalFoto?, val foto: FotoAlbum)
+        data class Salva(
+            val arquivo: String,
+            val dataHora: ZonedDateTime,
+            val local: LocalFoto?,
+            val motivoSemLocal: MotivoSemLocal?,
+            val foto: FotoAlbum,
+        )
 
         private val fotos = mutableListOf<FotoAlbum>()
         val locais = mutableMapOf<String, LocalFoto?>()
+        private val motivos = mutableMapOf<String, MotivoSemLocal?>()
         val salvas = mutableListOf<Salva>()
         val apagadas = mutableListOf<FotoAlbum>()
         var falharAoSalvar = false
         private var proximoId = 1
 
-        fun adicionar(dataHora: ZonedDateTime, local: LocalFoto? = null): FotoAlbum {
+        fun adicionar(dataHora: ZonedDateTime, local: LocalFoto? = null, motivo: MotivoSemLocal? = null): FotoAlbum {
             val foto = FotoAlbum("content://foto/${proximoId++}", dataHora)
             fotos += foto
             locais[foto.id] = local
+            motivos[foto.id] = motivo
             return foto
         }
 
         override suspend fun listar() = fotos.toList()
 
-        override suspend fun salvar(arquivoTemporario: String, dataHora: ZonedDateTime, local: LocalFoto?): FotoAlbum {
+        override suspend fun salvar(
+            arquivoTemporario: String,
+            dataHora: ZonedDateTime,
+            local: LocalFoto?,
+            motivoSemLocal: MotivoSemLocal?,
+        ): FotoAlbum {
             if (falharAoSalvar) error("disco cheio")
-            val foto = adicionar(dataHora, local)
-            salvas += Salva(arquivoTemporario, dataHora, local, foto)
+            val foto = adicionar(dataHora, local, motivoSemLocal)
+            salvas += Salva(arquivoTemporario, dataHora, local, motivoSemLocal, foto)
             return foto
         }
 
         override suspend fun lerLocal(foto: FotoAlbum) = locais[foto.id]
+
+        override suspend fun lerMotivoSemLocal(foto: FotoAlbum) = motivos[foto.id]
 
         override suspend fun atualizarNomeLocal(foto: FotoAlbum, nome: String) {
             locais[foto.id] = locais[foto.id]?.copy(nome = nome)
