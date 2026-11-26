@@ -27,10 +27,14 @@ object Painel {
     private val CEM = BigDecimal(100)
 
     fun resumo(registros: List<Registro>, periodo: Periodo, zona: ZoneId): ResumoPeriodo {
-        val custos = custosDasSaidas(registros)
         val doPeriodo = registros.filter { periodo.contem(it.dataHora.atZone(zona).toLocalDate()) }
-        val vendas = doPeriodo.filterIsInstance<Registro.Venda>()
-        val perdas = doPeriodo.filterIsInstance<Registro.Perda>()
+        return resumoDe(doPeriodo, custosDasSaidas(registros))
+    }
+
+    /** Totais de [selecionados] usando [custos] já calculados sobre o histórico completo. */
+    internal fun resumoDe(selecionados: List<Registro>, custos: Map<Long, BigDecimal>): ResumoPeriodo {
+        val vendas = selecionados.filterIsInstance<Registro.Venda>()
+        val perdas = selecionados.filterIsInstance<Registro.Perda>()
 
         val fotosVendidas = vendas.sumOf { it.quantidadeFotos }
         val faturamento = vendas.fold(BigDecimal.ZERO) { soma, v -> soma + faturamento(v) }
@@ -77,7 +81,7 @@ object Painel {
      * Custo de cada venda/perda pelo custo médio ponderado: cada compra atualiza o custo
      * médio do estoque; cada saída leva o custo médio daquele momento.
      */
-    private fun custosDasSaidas(registros: List<Registro>): Map<Long, BigDecimal> {
+    internal fun custosDasSaidas(registros: List<Registro>): Map<Long, BigDecimal> {
         val custos = mutableMapOf<Long, BigDecimal>()
         var estoque = 0
         var valorEstoque = BigDecimal.ZERO

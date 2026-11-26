@@ -107,6 +107,15 @@ fun RelatoriosTela(viewModel: RegistrosViewModel = viewModel(factory = FabricaRe
                 )
             }
 
+            item {
+                GraficoRelatorio(
+                    pontos = estado.pontosGrafico,
+                    metrica = estado.metricaGrafico,
+                    tipoPeriodo = estado.periodo.tipo,
+                    aoEscolherMetrica = viewModel::aoEscolherMetrica,
+                )
+            }
+
             estado.painel?.let { painel ->
                 item { CartoesPainel(painel, estado.configuracao.limiteEstoqueBaixo) }
             }

@@ -44,6 +44,8 @@ data class EstadoRegistros(
     val registrosDoPeriodo: List<Registro> = emptyList(),
     val painel: DadosPainel? = null,
     val configuracao: ConfiguracaoTaxas = ConfiguracaoTaxas.PADRAO,
+    val metricaGrafico: MetricaGrafico = MetricaGrafico.FOTOS,
+    val pontosGrafico: List<PontoGrafico> = emptyList(),
 )
 
 data class DadosPainel(
@@ -102,6 +104,10 @@ class RegistrosViewModel(
 
     fun aoEscolherTipoPeriodo(tipo: TipoPeriodo) = mudarPeriodo { Periodo.atual(tipo, hoje()) }
 
+    fun aoEscolherMetrica(metrica: MetricaGrafico) {
+        _estado.update { it.copy(metricaGrafico = metrica) }
+    }
+
     fun salvarConfiguracao(configuracao: ConfiguracaoTaxas) {
         viewModelScope.launch {
             repositorioConfiguracao.salvar(configuracao)
@@ -125,6 +131,7 @@ class RegistrosViewModel(
         val situacao = Painel.situacaoGeral(registros)
 
         return estado.copy(
+            pontosGrafico = Grafico.montar(registros, periodo, zona),
             podeAvancarPeriodo = !periodo.proximo().eFuturo(hoje()),
             registrosDoPeriodo = registros.filter { periodo.contem(it.dataHora.atZone(zona).toLocalDate()) },
             painel = DadosPainel(
