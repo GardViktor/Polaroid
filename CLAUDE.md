@@ -26,7 +26,7 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
   - Dinheiro em **centavos (Long)**; `Centavos.de` rejeita fração de centavo. Venda guarda forma de pagamento e a **taxa congelada** (pontos-base: débito 199, crédito 499, Pix/dinheiro 0); editar mantém a taxa se a forma não mudar.
   - `RegistrosViewModel` é compartilhado (escopo da Activity) entre Calculadora e Relatórios.
   - Próximas etapas: 2) painel (saldo de caixa, lucro com custo médio, estoque com aviso, comparação com período anterior, tela de taxas) 3) gráficos (Vico) 4) exportar CSV.
-- **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Calcular, Buscar, Álbum e Relatórios; sem biblioteca de navegação (estado salvo com `rememberSaveable`).
+- **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Buscar, Álbum, Calcular e Relatórios (nessa ordem; o app abre em Calcular); sem biblioteca de navegação (estado salvo com `rememberSaveable`).
 
 ## Tech Stack
 
