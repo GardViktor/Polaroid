@@ -24,6 +24,19 @@ data class ResultadoCalculo(
 )
 
 /**
+ * Custo calculado só com a compra (antes de existir preço de venda).
+ *
+ * @property custoPorFoto valor pago ÷ quantidade (2 casas, HALF_UP)
+ * @property precoMinimoSemPrejuizo menor preço em centavos que não dá prejuízo (arredondado para cima)
+ * @property custoPorFotoArredondado true quando a divisão não foi exata
+ */
+data class ResultadoCusto(
+    val custoPorFoto: BigDecimal,
+    val precoMinimoSemPrejuizo: BigDecimal,
+    val custoPorFotoArredondado: Boolean,
+)
+
+/**
  * Calcula custo e lucro da venda de fotos.
  *
  * Regra: nenhum centavo se perde. As contas internas usam precisão total e só
@@ -36,15 +49,33 @@ object CalculadoraLucro {
     private val PRECISAO_INTERNA = MathContext.DECIMAL128
     private val CEM = BigDecimal(100)
 
+    fun calcularCusto(valorPago: BigDecimal, quantidadeFotos: Int): ResultadoCusto {
+        validarCompra(valorPago, quantidadeFotos)
+
+        val custoPorFotoExato = valorPago.divide(BigDecimal(quantidadeFotos), PRECISAO_INTERNA)
+        val custoPorFoto = arredondar(custoPorFotoExato)
+
+        return ResultadoCusto(
+            custoPorFoto = custoPorFoto,
+            // Para cima: vender a qualquer valor >= este nunca dá prejuízo
+            precoMinimoSemPrejuizo = custoPorFotoExato.setScale(CASAS_CENTAVOS, RoundingMode.CEILING),
+            custoPorFotoArredondado = custoPorFoto.compareTo(custoPorFotoExato) != 0,
+        )
+    }
+
+    private fun validarCompra(valorPago: BigDecimal, quantidadeFotos: Int) {
+        require(quantidadeFotos > 0) { "A quantidade de fotos deve ser maior que zero" }
+        require(valorPago.signum() >= 0) { "O valor pago não pode ser negativo" }
+        require(temNoMaximoCentavos(valorPago)) { "O valor pago não pode ter fração de centavo" }
+    }
+
     fun calcular(
         valorPago: BigDecimal,
         quantidadeFotos: Int,
         precoVendaPorFoto: BigDecimal,
     ): ResultadoCalculo {
-        require(quantidadeFotos > 0) { "A quantidade de fotos deve ser maior que zero" }
-        require(valorPago.signum() >= 0) { "O valor pago não pode ser negativo" }
+        validarCompra(valorPago, quantidadeFotos)
         require(precoVendaPorFoto.signum() > 0) { "O preço de venda deve ser maior que zero" }
-        require(temNoMaximoCentavos(valorPago)) { "O valor pago não pode ter fração de centavo" }
         require(temNoMaximoCentavos(precoVendaPorFoto)) { "O preço de venda não pode ter fração de centavo" }
 
         val quantidade = BigDecimal(quantidadeFotos)
