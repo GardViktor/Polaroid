@@ -12,7 +12,12 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
   - Saídas com preço: lucro por foto, lucro total e margem de lucro (sobre o preço de venda).
   - Calcula enquanto digita; caracteres inválidos são bloqueados na hora; erros só aparecem ao sair do campo; "≈" quando houve arredondamento; prejuízo em vermelho.
 - **Buscar filmes** (aba criada, conteúdo "em breve"): ranking de ofertas de filme Instax Mini pelo **preço por foto** ((preço + frete) ÷ fotos), do mais barato ao mais caro. Sem burlar bloqueios de sites: só fontes oficiais (API do Mercado Livre, redes de afiliados). Início direto do app; objetivo futuro é mover a busca para o `backend/` hospedado (cache + chaves protegidas).
-- **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Calcular e Buscar; sem biblioteca de navegação (estado salvo com `rememberSaveable`).
+- **Álbum** (implementado): câmera dentro do app (CameraX), foto salva na **galeria** em `Pictures/Polaroid` com data, hora e local **aproximado**; grade 3 colunas (Coil para miniaturas), foto aberta com data/hora/local e opção de apagar com confirmação.
+  - Data/hora e coordenadas ficam **dentro da foto (EXIF)**; o nome do lugar ("Bairro, Cidade", via Geocoder, precisa de internet) é só cache em SharedPreferences e é redescoberto ao abrir a foto se faltar.
+  - Localização começa a ser buscada ao abrir a câmera e nunca trava a foto (limite 5 s → salva sem local). Localização negada não impede a foto.
+  - Interfaces `RepositorioFotos`, `ProvedorLocalizacao`, `ProvedorNomeLocal` isolam o Android para o `AlbumViewModel` ser testado com fakes.
+  - Limitação conhecida: após reinstalar o app, fotos antigas continuam na galeria mas não aparecem no Álbum (Android só lista fotos criadas pela instalação atual sem permissão extra de leitura).
+- **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Calcular, Buscar e Álbum; sem biblioteca de navegação (estado salvo com `rememberSaveable`).
 
 ## Tech Stack
 
