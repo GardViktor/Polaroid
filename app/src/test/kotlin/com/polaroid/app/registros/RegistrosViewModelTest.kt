@@ -94,7 +94,7 @@ class RegistrosViewModelTest {
 
         vm.abrirNovaVenda("10")
         assertEquals(20, vm.estado.value.formulario?.disponivel)
-        vm.aoSelecionarQuantidade(5)
+        vm.aoSomarQuantidade(5)
         vm.salvar()
         advanceUntilIdle()
 
@@ -104,13 +104,13 @@ class RegistrosViewModelTest {
     // --- Nova venda ---
 
     @Test
-    fun `nova venda comeca agora, com 1 foto, o preco sugerido e Pix`() = runTest(dispatcher) {
+    fun `nova venda comeca agora, com 0 fotos, o preco sugerido e Pix`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaVenda(precoSugerido = "10,00")
 
         val formulario = assertNotNull(vm.estado.value.formulario)
         assertEquals(TipoRegistro.VENDA, formulario.tipo)
-        assertEquals("1", formulario.quantidade)
+        assertEquals("0", formulario.quantidade)
         assertEquals("10,00", formulario.valor)
         assertEquals(agora.withSecond(0), formulario.dataHora)
         assertEquals(FormaPagamento.PIX, formulario.formaPagamento)
@@ -121,7 +121,7 @@ class RegistrosViewModelTest {
     fun `salva venda valida`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaVenda()
-        vm.aoSelecionarQuantidade(3)
+        vm.aoSomarQuantidade(3)
         vm.aoMudarValor("10,00")
         vm.salvar()
         advanceUntilIdle()
@@ -139,6 +139,7 @@ class RegistrosViewModelTest {
     fun `venda no credito grava a taxa do credito`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaVenda("10")
+        vm.aoSomarQuantidade(1)
         vm.aoMudarFormaPagamento(FormaPagamento.CREDITO)
         vm.salvar()
         advanceUntilIdle()
@@ -146,100 +147,99 @@ class RegistrosViewModelTest {
         assertEquals(499, vendas().single().taxaPontosBase)
     }
 
-    // --- Botões de quantidade ---
+    // --- Botões de quantidade (+1 +3 +5 +10 / −1 −3 −5 −10) ---
 
     @Test
-    fun `botoes definem a quantidade`() = runTest(dispatcher) {
+    fun `botoes somam e acumulam sem resetar`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaVenda()
 
-        vm.aoSelecionarQuantidade(10)
-        assertEquals("10", vm.estado.value.formulario?.quantidade)
-        vm.aoSelecionarQuantidade(5)
-        assertEquals("5", vm.estado.value.formulario?.quantidade)
+        // 18 fotos = +10 +5 +3
+        vm.aoSomarQuantidade(10)
+        vm.aoSomarQuantidade(5)
+        vm.aoSomarQuantidade(3)
+
+        assertEquals("18", vm.estado.value.formulario?.quantidade)
     }
 
     @Test
-    fun `mais e menos ajustam de 1 em 1 com minimo 1`() = runTest(dispatcher) {
+    fun `mesmo total por caminhos diferentes`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaVenda()
 
-        vm.aoAumentarQuantidade()
-        vm.aoAumentarQuantidade()
+        // 18 fotos = +10 +5 +1 +1 +1
+        vm.aoSomarQuantidade(10)
+        vm.aoSomarQuantidade(5)
+        repeat(3) { vm.aoSomarQuantidade(1) }
+
+        assertEquals("18", vm.estado.value.formulario?.quantidade)
+    }
+
+    @Test
+    fun `botoes de menos subtraem`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+        vm.abrirNovaVenda()
+        vm.aoSomarQuantidade(10)
+        vm.aoSomarQuantidade(10)
+
+        vm.aoSomarQuantidade(-5)
+        vm.aoSomarQuantidade(-1)
+
+        assertEquals("14", vm.estado.value.formulario?.quantidade)
+    }
+
+    @Test
+    fun `nao fica abaixo de zero`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+        vm.abrirNovaVenda()
+        vm.aoSomarQuantidade(3)
+
+        vm.aoSomarQuantidade(-5)
         assertEquals("3", vm.estado.value.formulario?.quantidade)
 
-        repeat(5) { vm.aoDiminuirQuantidade() }
-        assertEquals("1", vm.estado.value.formulario?.quantidade)
+        vm.aoSomarQuantidade(-3)
+        assertEquals("0", vm.estado.value.formulario?.quantidade)
     }
 
     @Test
-    fun `o botao escolhido define o passo do mais e do menos`() = runTest(dispatcher) {
-        val vm = criar(compraBase)
-        vm.abrirNovaVenda()
-
-        vm.aoSelecionarQuantidade(3)
-        vm.aoAumentarQuantidade()
-        vm.aoAumentarQuantidade()
-        assertEquals("9", vm.estado.value.formulario?.quantidade)
-
-        vm.aoDiminuirQuantidade()
-        assertEquals("6", vm.estado.value.formulario?.quantidade)
-    }
-
-    @Test
-    fun `trocar de botao troca o passo`() = runTest(dispatcher) {
-        val vm = criar(compraBase)
-        vm.abrirNovaVenda()
-        vm.aoSelecionarQuantidade(10)
-        vm.aoAumentarQuantidade()
-        assertEquals("20", vm.estado.value.formulario?.quantidade)
-
-        vm.aoSelecionarQuantidade(1)
-        vm.aoAumentarQuantidade()
-        assertEquals("2", vm.estado.value.formulario?.quantidade)
-    }
-
-    @Test
-    fun `menos nao deixa ficar abaixo de 1 foto`() = runTest(dispatcher) {
-        val vm = criar(compraBase)
-        vm.abrirNovaVenda()
-        vm.aoSelecionarQuantidade(3)
-
-        vm.aoDiminuirQuantidade()
-
-        assertEquals("3", vm.estado.value.formulario?.quantidade)
-    }
-
-    @Test
-    fun `mais nao passa do disponivel mesmo com passo grande`() = runTest(dispatcher) {
+    fun `nao passa do disponivel`() = runTest(dispatcher) {
         val vm = criar(Registro.Compra(1, instante(agora.minusDays(1)), 7, 7000))
         vm.abrirNovaVenda()
-        vm.aoSelecionarQuantidade(5)
+        vm.aoSomarQuantidade(5)
 
-        vm.aoAumentarQuantidade()
-
+        vm.aoSomarQuantidade(5)
         assertEquals("5", vm.estado.value.formulario?.quantidade)
+
+        vm.aoSomarQuantidade(1)
+        vm.aoSomarQuantidade(1)
+        assertEquals("7", vm.estado.value.formulario?.quantidade)
+        vm.aoSomarQuantidade(1)
+        assertEquals("7", vm.estado.value.formulario?.quantidade)
     }
 
     @Test
-    fun `edicao comeca com passo 1`() = runTest(dispatcher) {
+    fun `edicao soma a partir da quantidade gravada`() = runTest(dispatcher) {
         val venda = Registro.Venda(7, instante(agora.minusDays(1)), 7, 1000, FormaPagamento.PIX, 0)
         val vm = criar(compraBase, venda)
 
         vm.abrirEdicao(venda)
-        vm.aoAumentarQuantidade()
+        vm.aoSomarQuantidade(3)
 
-        assertEquals("8", vm.estado.value.formulario?.quantidade)
+        assertEquals("10", vm.estado.value.formulario?.quantidade)
     }
 
     @Test
-    fun `mais para no estoque disponivel`() = runTest(dispatcher) {
-        val vm = criar(Registro.Compra(1, instante(agora.minusDays(1)), 4, 4000))
-        vm.abrirNovaVenda()
+    fun `salvar com zero fotos e invalido`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+        vm.abrirNovaVenda("10")
+        vm.salvar()
+        advanceUntilIdle()
 
-        repeat(10) { vm.aoAumentarQuantidade() }
-
-        assertEquals("4", vm.estado.value.formulario?.quantidade)
+        assertEquals(
+            "A quantidade deve ser maior que zero",
+            vm.estado.value.formulario?.erros?.get(CampoRegistro.QUANTIDADE),
+        )
+        assertTrue(vendas().isEmpty())
     }
 
     @Test
@@ -281,7 +281,7 @@ class RegistrosViewModelTest {
     fun `bloqueia perda maior que o estoque`() = runTest(dispatcher) {
         val vm = criar(Registro.Compra(1, instante(agora.minusDays(1)), 2, 2000))
         vm.abrirNovaPerda()
-        vm.aoSelecionarQuantidade(3)
+        vm.aoSomarQuantidade(3)
         vm.salvar()
         advanceUntilIdle()
 
@@ -293,6 +293,7 @@ class RegistrosViewModelTest {
     fun `bloqueia venda antes da primeira compra`() = runTest(dispatcher) {
         val vm = criar(Registro.Compra(1, instante(agora.minusDays(1)), 140, 14000))
         vm.abrirNovaVenda("10")
+        vm.aoSomarQuantidade(1)
         vm.aoMudarDataHora(agora.minusDays(3))
         vm.salvar()
         advanceUntilIdle()
@@ -390,6 +391,7 @@ class RegistrosViewModelTest {
             Registro.Venda(2, instante(agora.minusDays(1)), 150, 1000, FormaPagamento.PIX, 0),
         )
         vm.abrirNovaPerda()
+        vm.aoSomarQuantidade(1)
         vm.salvar()
         advanceUntilIdle()
 
@@ -409,6 +411,7 @@ class RegistrosViewModelTest {
     fun `bloqueia data futura`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaVenda("10")
+        vm.aoSomarQuantidade(1)
         vm.aoMudarDataHora(agora.plusMinutes(5))
         vm.salvar()
         advanceUntilIdle()
@@ -421,6 +424,7 @@ class RegistrosViewModelTest {
     fun `bloqueia amanha`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaPerda()
+        vm.aoSomarQuantidade(1)
         vm.aoMudarDataHora(agora.plusDays(1).withHour(8))
         vm.salvar()
         advanceUntilIdle()
@@ -432,6 +436,7 @@ class RegistrosViewModelTest {
     fun `aceita o minuto atual`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaVenda("10")
+        vm.aoSomarQuantidade(1)
         vm.salvar()
         advanceUntilIdle()
 
@@ -442,6 +447,7 @@ class RegistrosViewModelTest {
     fun `aceita dias anteriores`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaVenda("10")
+        vm.aoSomarQuantidade(1)
         vm.aoMudarDataHora(agora.minusDays(40))
         vm.salvar()
         advanceUntilIdle()
@@ -501,7 +507,7 @@ class RegistrosViewModelTest {
         vm.aoMudarQuantidade("")
         vm.salvar()
         advanceUntilIdle()
-        vm.aoSelecionarQuantidade(2)
+        vm.aoSomarQuantidade(2)
 
         assertNull(vm.estado.value.formulario?.erros?.get(CampoRegistro.QUANTIDADE))
     }
@@ -512,8 +518,8 @@ class RegistrosViewModelTest {
     fun `registra perda com quantidade e data`() = runTest(dispatcher) {
         val vm = criar(compraBase)
         vm.abrirNovaPerda()
-        assertEquals("1", vm.estado.value.formulario?.quantidade)
-        vm.aoSelecionarQuantidade(3)
+        assertEquals("0", vm.estado.value.formulario?.quantidade)
+        vm.aoSomarQuantidade(3)
         vm.salvar()
         advanceUntilIdle()
 
@@ -548,7 +554,7 @@ class RegistrosViewModelTest {
         val vm = criar(compraBase, venda)
 
         vm.abrirEdicao(venda)
-        vm.aoSelecionarQuantidade(5)
+        vm.aoSomarQuantidade(2) // 3 + 2
         vm.salvar()
         advanceUntilIdle()
 
@@ -578,7 +584,7 @@ class RegistrosViewModelTest {
         val vm = criar(compraBase, venda)
 
         vm.abrirEdicao(venda)
-        vm.aoSelecionarQuantidade(4)
+        vm.aoSomarQuantidade(4)
         vm.salvar()
         advanceUntilIdle()
 
