@@ -119,6 +119,14 @@ class RankingTest {
     }
 
     @Test
+    fun `anuncio so de loja fisica entra com o selo`() {
+        val oferta = Ranking.montar(
+            listOf(AnuncioBruto("Paixão", "Filme Instax Mini 10 Fotos", 8500, "https://p/1", somenteLojaFisica = true)),
+        ).single()
+        assertTrue(oferta.somenteLojaFisica)
+    }
+
+    @Test
     fun `categoria garantida aceita titulo sem instax`() {
         val ofertas = Ranking.montar(listOf(anuncio("Mini Branco 10 Fotos", 9000, categoriaGarantida = true)))
         assertEquals(1, ofertas.size)

@@ -59,6 +59,28 @@ class ExtratorFotosTest {
     }
 
     @Test
+    fun `unidades valem como fotos quando nao ha fotos ou poses no titulo`() {
+        assertEquals(20, fotos("Filme Instax Mini, 6,2x4,6cm, 705028297, Fuji Film - PT 20 UN")) // Kalunga
+        assertEquals(10, fotos("Filme Instax Mini 6,2x4,6cm 705060212 Fuji Film PT 10 UN"))
+        assertEquals(20, fotos("Filme Instax Mini Instantâneo Fujifilm com 20 Unidades")) // Carrefour
+        // Com fotos/poses explícitas, elas mandam (unidade pode ser caixa ou cartucho)
+        assertEquals(10, fotos("Filme Instax mini Macaron, com 10 fotos, 705066516, Fuji Film CX 1 UN"))
+        assertEquals(60, fotos("Kit 3x Filmes Instax Mini Instantâneo Fujifilm 20 Unidades (60 Fotos)"))
+    }
+
+    @Test
+    fun `pacote de 10 vezes 2 em qualquer ordem`() {
+        assertEquals(20, fotos("Filme Instantâneo Fujifilm Instax Mini Monochrome, Pacote Com 10 X 2"))
+        assertEquals(100, fotos("Filme Instantâneo Fujifilm Instax Mini, Pacote Com 10 (100 Filmes)"))
+    }
+
+    @Test
+    fun `medidas com x nao viram pacotes`() {
+        assertEquals(80, fotos("Filme Instantâneo Fujifilm Instax Mini 80 Folhas (2,1x3,4 Cm)"))
+        assertEquals(20, fotos("Fujifilm Filme Instax Mini com 20 Fotos, 8.6 x 5.4 cm"))
+    }
+
+    @Test
     fun `pacote duplo sem numero vale 20`() {
         assertEquals(20, fotos("Filme Instax Mini Twin Pack"))
         assertEquals(20, fotos("Filme Instax Mini Pacote Duplo Branco"))
