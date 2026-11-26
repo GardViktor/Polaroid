@@ -39,10 +39,13 @@ Gradle local precisa do JDK do Android Studio (o Java 25 do PATH não serve para
 ```powershell
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 .\gradlew.bat test              # todos os testes (calculadora + app)
-.\gradlew.bat assembleDebug     # gera app/build/outputs/apk/debug/app-debug.apk
+.\gradlew.bat assembleRelease   # APK otimizado (R8) e assinado: app/build/outputs/apk/release/app-release.apk — usar este para testar no celular
+.\gradlew.bat assembleDebug     # APK de desenvolvimento (lento, ~12 MB), id com.polaroid.app.debug, nome "Polaroid (dev)"
 .\gradlew.bat installDebug      # instala no celular conectado via USB
 ./test.ps1                      # testes da calculadora no Docker
 ```
+
+Chave de assinatura do release fica **fora do repositório** em `%USERPROFILE%\.polaroid\` (`polaroid-release.jks` + `keystore.properties`). Nunca commitar. Sem ela o release sai sem assinatura.
 
 SDK em `%LOCALAPPDATA%\Android\Sdk` (gerenciado com `cmdline-tools\latest\bin\android.exe sdk ...`; o `sdkmanager` foi descontinuado).
 - `backend/` — API FastAPI + Postgres via Docker Compose (parado por enquanto)
