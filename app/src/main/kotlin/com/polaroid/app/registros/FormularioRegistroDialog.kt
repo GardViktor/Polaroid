@@ -5,6 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -46,6 +52,9 @@ fun FormularioRegistroDialog(
     formulario: Formulario,
     hoje: LocalDate,
     aoMudarQuantidade: (String) -> Unit,
+    aoSelecionarQuantidade: (Int) -> Unit,
+    aoAumentarQuantidade: () -> Unit,
+    aoDiminuirQuantidade: () -> Unit,
     aoMudarValor: (String) -> Unit,
     aoMudarDataHora: (LocalDateTime) -> Unit,
     aoMudarForma: (FormaPagamento) -> Unit,
@@ -81,16 +90,25 @@ fun FormularioRegistroDialog(
                     Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
 
-                OutlinedTextField(
-                    value = formulario.quantidade,
-                    onValueChange = aoMudarQuantidade,
-                    label = { Text("Quantidade de fotos") },
-                    isError = CampoRegistro.QUANTIDADE in formulario.erros,
-                    supportingText = formulario.erros[CampoRegistro.QUANTIDADE]?.let { { Text(it) } },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (formulario.tipo == TipoRegistro.COMPRA) {
+                    OutlinedTextField(
+                        value = formulario.quantidade,
+                        onValueChange = aoMudarQuantidade,
+                        label = { Text("Quantidade de fotos") },
+                        isError = CampoRegistro.QUANTIDADE in formulario.erros,
+                        supportingText = formulario.erros[CampoRegistro.QUANTIDADE]?.let { { Text(it) } },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    SeletorQuantidade(
+                        formulario = formulario,
+                        aoSelecionar = aoSelecionarQuantidade,
+                        aoAumentar = aoAumentarQuantidade,
+                        aoDiminuir = aoDiminuirQuantidade,
+                    )
+                }
 
                 if (formulario.tipo != TipoRegistro.PERDA) {
                     OutlinedTextField(
@@ -144,6 +162,65 @@ fun FormularioRegistroDialog(
             },
             aoCancelar = { escolhendoHora = false },
         )
+    }
+}
+
+private val ATALHOS_QUANTIDADE = listOf(1, 3, 5, 10)
+
+/** Botões 1/3/5/10 + contador −/+, limitado ao estoque disponível. */
+@Composable
+private fun SeletorQuantidade(
+    formulario: Formulario,
+    aoSelecionar: (Int) -> Unit,
+    aoAumentar: () -> Unit,
+    aoDiminuir: () -> Unit,
+) {
+    val atual = formulario.quantidade.toIntOrNull() ?: 0
+    val disponivel = formulario.disponivel
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Quantidade de fotos", style = MaterialTheme.typography.labelLarge)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ATALHOS_QUANTIDADE.forEach { quantidade ->
+                FilterChip(
+                    selected = quantidade == atual,
+                    onClick = { aoSelecionar(quantidade) },
+                    enabled = disponivel == null || quantidade <= disponivel,
+                    label = { Text("$quantidade") },
+                )
+            }
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FilledTonalButton(
+                onClick = aoDiminuir,
+                enabled = atual > 1,
+                modifier = Modifier.semantics { contentDescription = "Diminuir quantidade" },
+            ) { Text("−") }
+            Text(
+                formulario.quantidade.ifEmpty { "—" },
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(min = 40.dp),
+            )
+            FilledTonalButton(
+                onClick = aoAumentar,
+                enabled = disponivel == null || atual < disponivel,
+                modifier = Modifier.semantics { contentDescription = "Aumentar quantidade" },
+            ) { Text("+") }
+        }
+        if (disponivel != null) {
+            Text(
+                "Disponível: $disponivel fotos",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        formulario.erros[CampoRegistro.QUANTIDADE]?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 

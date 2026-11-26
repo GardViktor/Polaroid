@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -72,6 +73,22 @@ fun RelatoriosTela(viewModel: RegistrosViewModel = viewModel(factory = FabricaRe
         ) {
             Text("Relatórios", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(vertical = 16.dp))
 
+            if (estado.estoqueNegativo) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                ) {
+                    Text(
+                        "⚠ Estoque negativo: há mais fotos vendidas/perdidas do que compradas. " +
+                            "Revise os registros (edite ou apague) para a conta fechar.",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(12.dp),
+                    )
+                }
+            }
+
             if (estado.registros.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
@@ -102,6 +119,9 @@ fun RelatoriosTela(viewModel: RegistrosViewModel = viewModel(factory = FabricaRe
             formulario = formulario,
             hoje = LocalDate.now(),
             aoMudarQuantidade = viewModel::aoMudarQuantidade,
+            aoSelecionarQuantidade = viewModel::aoSelecionarQuantidade,
+            aoAumentarQuantidade = viewModel::aoAumentarQuantidade,
+            aoDiminuirQuantidade = viewModel::aoDiminuirQuantidade,
             aoMudarValor = viewModel::aoMudarValor,
             aoMudarDataHora = viewModel::aoMudarDataHora,
             aoMudarForma = viewModel::aoMudarFormaPagamento,

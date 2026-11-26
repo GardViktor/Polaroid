@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 enum class TipoRegistro { COMPRA, VENDA, PERDA }
@@ -28,12 +29,16 @@ data class Formulario(
     val erros: Map<CampoRegistro, String> = emptyMap(),
     /** Taxa já gravada na venda em edição (preservada se a forma de pagamento não mudar). */
     val taxaOriginal: Pair<FormaPagamento, Int>? = null,
+    /** Fotos que podem sair nessa data (venda/perda); null para compra. */
+    val disponivel: Int? = null,
 )
 
 data class EstadoRegistros(
     val registros: List<Registro> = emptyList(),
     val formulario: Formulario? = null,
     val mensagem: String? = null,
+    /** Dados antigos com mais saídas que entradas: mostrar aviso para revisar. */
+    val estoqueNegativo: Boolean = false,
 )
 
 /**
@@ -52,7 +57,13 @@ class RegistrosViewModel(
     init {
         viewModelScope.launch {
             repositorio.observar().collect { registros ->
-                _estado.update { it.copy(registros = registros.sortedByDescending(Registro::dataHora)) }
+                _estado.update {
+                    it.copy(
+                        registros = registros.sortedByDescending(Registro::dataHora),
+                        estoqueNegativo = Estoque.primeiraFalta(registros) != null,
+                        formulario = it.formulario?.let { f -> comDisponivel(f, registros) },
+                    )
+                }
             }
         }
     }
@@ -67,10 +78,10 @@ class RegistrosViewModel(
 
     fun abrirNovaVenda(precoSugerido: String = "") {
         val preco = precoSugerido.takeIf(EntradaNumerica::aceitaValor).orEmpty()
-        abrir(Formulario(TipoRegistro.VENDA, agoraNoMinuto(), valor = preco))
+        abrir(Formulario(TipoRegistro.VENDA, agoraNoMinuto(), quantidade = "1", valor = preco))
     }
 
-    fun abrirNovaPerda() = abrir(Formulario(TipoRegistro.PERDA, agoraNoMinuto()))
+    fun abrirNovaPerda() = abrir(Formulario(TipoRegistro.PERDA, agoraNoMinuto(), quantidade = "1"))
 
     fun abrirEdicao(registro: Registro) {
         val dataHora = LocalDateTime.ofInstant(registro.dataHora, relogio.zone)
@@ -97,13 +108,30 @@ class RegistrosViewModel(
         atualizarFormulario(CampoRegistro.QUANTIDADE) { it.copy(quantidade = texto) }
     }
 
+    fun aoSelecionarQuantidade(quantidade: Int) =
+        atualizarFormulario(CampoRegistro.QUANTIDADE) { it.copy(quantidade = quantidade.toString()) }
+
+    /** +1, sem passar do estoque disponível nessa data. */
+    fun aoAumentarQuantidade() = atualizarFormulario(CampoRegistro.QUANTIDADE) {
+        val atual = it.quantidade.toIntOrNull() ?: 0
+        val limite = (it.disponivel ?: QUANTIDADE_MAXIMA).coerceAtLeast(1)
+        if (atual + 1 > limite) it else it.copy(quantidade = (atual + 1).toString())
+    }
+
+    /** −1, com mínimo de 1 foto. */
+    fun aoDiminuirQuantidade() = atualizarFormulario(CampoRegistro.QUANTIDADE) {
+        val atual = it.quantidade.toIntOrNull() ?: 1
+        it.copy(quantidade = (atual - 1).coerceAtLeast(1).toString())
+    }
+
     fun aoMudarValor(texto: String) {
         if (!EntradaNumerica.aceitaValor(texto)) return
         atualizarFormulario(CampoRegistro.VALOR) { it.copy(valor = texto) }
     }
 
-    fun aoMudarDataHora(dataHora: LocalDateTime) =
-        atualizarFormulario(CampoRegistro.DATA_HORA) { it.copy(dataHora = dataHora.truncatedTo(ChronoUnit.MINUTES)) }
+    fun aoMudarDataHora(dataHora: LocalDateTime) = atualizarFormulario(CampoRegistro.DATA_HORA) {
+        comDisponivel(it.copy(dataHora = dataHora.truncatedTo(ChronoUnit.MINUTES)), _estado.value.registros)
+    }
 
     fun aoMudarFormaPagamento(forma: FormaPagamento) =
         atualizarFormulario(null) { it.copy(formaPagamento = forma) }
@@ -117,6 +145,19 @@ class RegistrosViewModel(
         }
 
         val registro = montarRegistro(formulario)
+        val registros = _estado.value.registros
+        val depois = registros.filterNot { it.id == formulario.idEditando } + registro
+        if (pioraEstoque(registros, depois)) {
+            val disponivel = formulario.disponivel
+            val mensagem = if (disponivel != null && registro.quantidadeFotos > disponivel) {
+                "Estoque insuficiente: só há $disponivel fotos disponíveis nessa data"
+            } else {
+                "Essa mudança deixaria o estoque negativo em ${dataDaFalta(depois)}"
+            }
+            _estado.update { it.copy(formulario = formulario.copy(erros = mapOf(CampoRegistro.QUANTIDADE to mensagem))) }
+            return
+        }
+
         val editando = formulario.idEditando != null
         _estado.update { it.copy(formulario = null) }
         viewModelScope.launch {
@@ -130,6 +171,14 @@ class RegistrosViewModel(
     }
 
     fun apagar(registro: Registro) {
+        val registros = _estado.value.registros
+        val depois = registros.filterNot { it.id == registro.id }
+        if (pioraEstoque(registros, depois)) {
+            _estado.update {
+                it.copy(mensagem = "Não é possível apagar: o estoque ficaria negativo em ${dataDaFalta(depois)}")
+            }
+            return
+        }
         viewModelScope.launch { repositorio.apagar(registro) }
     }
 
@@ -138,8 +187,25 @@ class RegistrosViewModel(
     }
 
     private fun abrir(formulario: Formulario) {
-        _estado.update { it.copy(formulario = formulario) }
+        _estado.update { it.copy(formulario = comDisponivel(formulario, it.registros)) }
     }
+
+    /** Calcula quantas fotos podem sair na data do formulário (só venda e perda). */
+    private fun comDisponivel(formulario: Formulario, registros: List<Registro>): Formulario {
+        if (formulario.tipo == TipoRegistro.COMPRA) return formulario.copy(disponivel = null)
+        val quando = formulario.dataHora.atZone(relogio.zone).toInstant()
+        return formulario.copy(disponivel = Estoque.disponivelEm(registros, quando, formulario.idEditando))
+    }
+
+    /**
+     * Bloqueia o que cria ou aprofunda um estoque negativo. Se os dados já estavam
+     * inconsistentes, mudanças que não pioram (ex.: correções) continuam permitidas.
+     */
+    private fun pioraEstoque(antes: List<Registro>, depois: List<Registro>): Boolean =
+        Estoque.menorSaldo(depois) < minOf(0, Estoque.menorSaldo(antes))
+
+    private fun dataDaFalta(registros: List<Registro>): String =
+        Estoque.primeiraFalta(registros)?.quando?.atZone(relogio.zone)?.format(FORMATO_DATA).orEmpty()
 
     /** Aplica a mudança e limpa o erro do campo alterado. */
     private fun atualizarFormulario(campo: CampoRegistro?, mudanca: (Formulario) -> Formulario) {
@@ -207,5 +273,7 @@ class RegistrosViewModel(
 
     private companion object {
         val FORMATO_QUANTIDADE = Regex("""^\d{0,5}$""")
+        const val QUANTIDADE_MAXIMA = 99_999
+        val FORMATO_DATA: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     }
 }
