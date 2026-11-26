@@ -105,6 +105,15 @@ class RegistrosViewModel(
 
     fun aoEscolherTipoPeriodo(tipo: TipoPeriodo) = mudarPeriodo { Periodo.atual(tipo, hoje()) }
 
+    /** CSV dos registros do período escolhido, pronto para salvar e compartilhar. */
+    fun exportarCsv(): ArquivoExportacao {
+        val estado = _estado.value
+        return ArquivoExportacao(
+            nome = ExportadorCsv.nomeArquivo(estado.periodo),
+            conteudo = ExportadorCsv.gerar(estado.registros, estado.periodo, relogio.zone),
+        )
+    }
+
     fun aoEscolherMetrica(metrica: MetricaGrafico) {
         _estado.update { it.copy(metricaGrafico = metrica) }
     }

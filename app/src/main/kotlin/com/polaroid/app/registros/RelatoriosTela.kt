@@ -17,6 +17,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -30,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,6 +50,7 @@ fun RelatoriosTela(viewModel: RegistrosViewModel = viewModel(factory = FabricaRe
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     var apagando by remember { mutableStateOf<Registro?>(null) }
     var configurando by remember { mutableStateOf(false) }
+    val contexto = LocalContext.current
     val avisos = remember { SnackbarHostState() }
 
     LaunchedEffect(estado.mensagem) {
@@ -105,6 +108,13 @@ fun RelatoriosTela(viewModel: RegistrosViewModel = viewModel(factory = FabricaRe
                     aoAnterior = viewModel::aoPeriodoAnterior,
                     aoProximo = viewModel::aoProximoPeriodo,
                 )
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = { compartilharCsv(contexto, viewModel.exportarCsv()) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("⬇ Exportar CSV de ${estado.periodo.rotulo()}") }
             }
 
             item {
