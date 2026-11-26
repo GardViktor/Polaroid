@@ -15,12 +15,18 @@ import java.net.URLEncoder
 /** Termo de busca codificado para URL, com espaço como %20. */
 internal fun codificar(termo: String): String = URLEncoder.encode(termo, Charsets.UTF_8).replace("+", "%20")
 
-/** "89.99" (texto ou número do JSON) → 8999 centavos; null se não for um preço válido. */
-internal fun centavos(valor: String?): Long? =
-    valor?.trim()?.toBigDecimalOrNull()
+/**
+ * "89.99", "129,90" ou "1.234,56" (texto ou número do JSON) → centavos; null se não for preço.
+ * Com vírgula, segue o formato brasileiro: ponto é milhar e vírgula é decimal.
+ */
+internal fun centavos(valor: String?): Long? {
+    val limpo = valor?.trim()?.removePrefix("R$")?.trim() ?: return null
+    val decimal = if (',' in limpo) limpo.replace(".", "").replace(',', '.') else limpo
+    return decimal.toBigDecimalOrNull()
         ?.setScale(2, RoundingMode.HALF_UP)
         ?.movePointRight(2)
         ?.toLong()
+}
 
 /** Lê o JSON sem quebrar: página de bloqueio ou resposta inválida viram null. */
 internal fun lerJson(texto: String): JsonElement? = runCatching { Json.parseToJsonElement(texto) }.getOrNull()
