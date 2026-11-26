@@ -171,6 +171,19 @@ class RegistrosViewModelTest {
     }
 
     @Test
+    fun `exportacao usa o periodo escolhido`() = runTest(dispatcher) {
+        val vm = criar(compraBase, Registro.Venda(2, instante(agora.minusDays(1)), 3, 1000, FormaPagamento.PIX, 0))
+
+        val arquivo = vm.exportarCsv()
+
+        assertEquals("relatorio_mes_2026-11.csv", arquivo.nome)
+        assertTrue(arquivo.conteudo.contains(";Venda;3;10,00;30,00;Pix;"))
+
+        vm.aoEscolherTipoPeriodo(TipoPeriodo.ANO)
+        assertEquals("relatorio_ano_2026.csv", vm.exportarCsv().nome)
+    }
+
+    @Test
     fun `trocar a metrica do grafico`() = runTest(dispatcher) {
         val vm = criar(compraBase)
 
