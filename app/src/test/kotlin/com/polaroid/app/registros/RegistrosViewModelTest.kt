@@ -141,6 +141,29 @@ class RegistrosViewModelTest {
         assertFalse(assertNotNull(vm.estado.value.painel).estoqueBaixo)
     }
 
+    // --- Gráfico ---
+
+    @Test
+    fun `grafico comeca em fotos vendidas e segue o periodo`() = runTest(dispatcher) {
+        val vm = criar(compraBase, Registro.Venda(2, instante(agora.minusDays(1)), 3, 1000, FormaPagamento.PIX, 0))
+
+        assertEquals(MetricaGrafico.FOTOS, vm.estado.value.metricaGrafico)
+        assertEquals(30, vm.estado.value.pontosGrafico.size) // novembro: um ponto por dia
+        assertEquals(3, vm.estado.value.pontosGrafico.sumOf { it.fotosVendidas })
+
+        vm.aoEscolherTipoPeriodo(TipoPeriodo.ANO)
+        assertEquals(12, vm.estado.value.pontosGrafico.size)
+    }
+
+    @Test
+    fun `trocar a metrica do grafico`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+
+        vm.aoEscolherMetrica(MetricaGrafico.LUCRO)
+
+        assertEquals(MetricaGrafico.LUCRO, vm.estado.value.metricaGrafico)
+    }
+
     // --- Taxas configuráveis ---
 
     @Test
