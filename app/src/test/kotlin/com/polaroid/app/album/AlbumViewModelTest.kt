@@ -33,11 +33,13 @@ class AlbumViewModelTest {
     private val repositorio = RepositorioFalso()
     private var resultadoLocalizacao: ResultadoLocalizacao = ResultadoLocalizacao.Encontrada(pinheiros)
     private var localizacaoTrava = false
+    private var atrasoLocalizacaoMs = 0L
     private var nome: String? = "Pinheiros, São Paulo"
     private var chamadasNome = 0
 
     private val localizacao = ProvedorLocalizacao {
         if (localizacaoTrava) awaitCancellation()
+        kotlinx.coroutines.delay(atrasoLocalizacaoMs)
         resultadoLocalizacao
     }
     private val nomeLocal = ProvedorNomeLocal {
@@ -140,6 +142,27 @@ class AlbumViewModelTest {
         assertNull(salva.local)
         assertEquals(MotivoSemLocal.NAO_ENCONTRADO, salva.motivoSemLocal)
         assertEquals(1, vm.estado.value.fotos.size)
+    }
+
+    @Test
+    fun `localizacao precisa que demora 8 segundos ainda e aproveitada`() = runTest(dispatcher) {
+        // GPS (localização precisa) pode levar alguns segundos: o limite é de 10 s
+        atrasoLocalizacaoMs = 8_000
+        val vm = criarViewModel()
+        vm.aoFotoCapturada("tmp/foto.jpg")
+        advanceUntilIdle()
+
+        assertEquals(LocalFoto(pinheiros, "Pinheiros, São Paulo"), repositorio.salvas.single().local)
+    }
+
+    @Test
+    fun `localizacao que passa de 10 segundos e descartada`() = runTest(dispatcher) {
+        atrasoLocalizacaoMs = 11_000
+        val vm = criarViewModel()
+        vm.aoFotoCapturada("tmp/foto.jpg")
+        advanceUntilIdle()
+
+        assertEquals(MotivoSemLocal.NAO_ENCONTRADO, repositorio.salvas.single().motivoSemLocal)
     }
 
     @Test
