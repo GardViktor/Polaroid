@@ -25,7 +25,12 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
   - Venda e perda: quantidade começa em 0 e é montada por botões que **somam/subtraem sem resetar** (+1 +3 +5 +10 / −1 −3 −5 −10; ex.: 18 = +10 +5 +3), nunca abaixo de 0 nem acima do **disponível na data** (`Estoque.disponivelEm`, que reserva o que vendas posteriores já usam). Compra usa campo de texto.
   - Dinheiro em **centavos (Long)**; `Centavos.de` rejeita fração de centavo. Venda guarda forma de pagamento e a **taxa congelada** (pontos-base: débito 199, crédito 499, Pix/dinheiro 0); editar mantém a taxa se a forma não mudar.
   - `RegistrosViewModel` é compartilhado (escopo da Activity) entre Calculadora e Relatórios.
-  - Próximas etapas: 2) painel (saldo de caixa, lucro com custo médio, estoque com aviso, comparação com período anterior, tela de taxas) 3) gráficos (Vico) 4) exportar CSV.
+  - **Painel (etapa 2, feito)**: `Periodo` (Dia/Semana seg–dom/Mês/Trimestre/Ano, abre no mês atual, nunca avança para o futuro) e `Painel` (puro, testado): fotos vendidas/perdidas, faturamento, taxas, custo das fotos, **lucro**, preço médio, variação % vs. período anterior; lista de registros filtrada pelo período.
+    - **Custo médio ponderado**: cada compra atualiza o custo médio do estoque; cada venda/perda leva o custo médio do momento (compra nova não muda lucro de vendas antigas).
+    - **Saldo de caixa** (geral) = vendas − taxas − compras (começa negativo). **Estoque baixo** quando estoque ≤ limite (padrão 10).
+    - Taxas e frações de centavo do custo médio ficam com precisão total; só a tela arredonda e mostra "≈".
+    - ⚙ Configurações (`RepositorioConfiguracaoPrefs`): taxas por forma de pagamento + limite de estoque baixo; só afetam vendas novas.
+  - Próximas etapas: 3) gráficos (Vico) 4) exportar CSV.
 - **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Buscar, Álbum, Calcular e Relatórios (nessa ordem; o app abre em Calcular); sem biblioteca de navegação (estado salvo com `rememberSaveable`).
 
 ## Tech Stack
