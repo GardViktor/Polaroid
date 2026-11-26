@@ -18,23 +18,42 @@ import java.util.Locale
 import kotlin.coroutines.resume
 
 /**
- * Localização APROXIMADA (rede/Wi-Fi primeiro): rápida e econômica em bateria.
- * Pedida uma única vez por foto, sem rastrear em segundo plano.
+ * Localização APROXIMADA, pedida uma única vez por foto (sem rastrear em segundo plano).
+ *
+ * Consulta ao mesmo tempo todos os provedores ligados — "fused" (Android 12+, o mais
+ * confiável, inclusive em Samsung), rede e GPS — e usa a primeira resposta.
  */
 class ProvedorLocalizacaoAndroid(private val context: Context) : ProvedorLocalizacao {
 
-    @SuppressLint("MissingPermission") // verificada logo abaixo
-    override suspend fun localizacaoAtual(): Coordenadas? {
+    override suspend fun localizacaoAtual(): ResultadoLocalizacao {
         val permitido = ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_COARSE_LOCATION,
         ) == PackageManager.PERMISSION_GRANTED
-        if (!permitido) return null
+        if (!permitido) return ResultadoLocalizacao.Indisponivel(MotivoSemLocal.SEM_PERMISSAO)
 
-        val gerenciador = context.getSystemService(LocationManager::class.java) ?: return null
-        val provedor = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)
-            .firstOrNull { gerenciador.isProviderEnabled(it) } ?: return null
+        val gerenciador = context.getSystemService(LocationManager::class.java)
+        if (gerenciador == null || !LocationManagerCompat.isLocationEnabled(gerenciador)) {
+            return ResultadoLocalizacao.Indisponivel(MotivoSemLocal.LOCALIZACAO_DESLIGADA)
+        }
 
-        return suspendCancellableCoroutine { continuacao ->
+        val provedores = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(LocationManager.FUSED_PROVIDER)
+            add(LocationManager.NETWORK_PROVIDER)
+            add(LocationManager.GPS_PROVIDER)
+        }.filter { it in gerenciador.allProviders && gerenciador.isProviderEnabled(it) }
+
+        if (provedores.isEmpty()) {
+            return ResultadoLocalizacao.Indisponivel(MotivoSemLocal.LOCALIZACAO_DESLIGADA)
+        }
+
+        val coordenadas = primeiraLocalizacao(provedores.map { provedor -> { consultar(gerenciador, provedor) } })
+        return coordenadas?.let { ResultadoLocalizacao.Encontrada(it) }
+            ?: ResultadoLocalizacao.Indisponivel(MotivoSemLocal.NAO_ENCONTRADO)
+    }
+
+    @SuppressLint("MissingPermission") // verificada em localizacaoAtual()
+    private suspend fun consultar(gerenciador: LocationManager, provedor: String): Coordenadas? =
+        suspendCancellableCoroutine { continuacao ->
             val cancelamento = CancellationSignal()
             continuacao.invokeOnCancellation { cancelamento.cancel() }
             LocationManagerCompat.getCurrentLocation(
@@ -43,10 +62,11 @@ class ProvedorLocalizacaoAndroid(private val context: Context) : ProvedorLocaliz
                 cancelamento,
                 ContextCompat.getMainExecutor(context),
             ) { local ->
-                continuacao.resume(local?.let { Coordenadas(it.latitude, it.longitude) })
+                if (continuacao.isActive) {
+                    continuacao.resume(local?.let { Coordenadas(it.latitude, it.longitude) })
+                }
             }
         }
-    }
 }
 
 /** Nome do lugar ("Bairro, Cidade") pelo serviço de endereços do Android (precisa de internet). */

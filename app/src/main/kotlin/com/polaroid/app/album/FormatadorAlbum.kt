@@ -15,8 +15,13 @@ object FormatadorAlbum {
 
     fun hora(dataHora: ZonedDateTime): String = FORMATO_HORA.format(dataHora)
 
-    fun local(local: LocalFoto?): String = when {
-        local == null -> "Local não registrado"
+    fun local(local: LocalFoto?, motivoSemLocal: MotivoSemLocal? = null): String = when {
+        local == null -> when (motivoSemLocal) {
+            MotivoSemLocal.SEM_PERMISSAO -> "Sem permissão de localização"
+            MotivoSemLocal.LOCALIZACAO_DESLIGADA -> "Localização do celular desligada"
+            MotivoSemLocal.NAO_ENCONTRADO -> "Local não encontrado a tempo"
+            null -> "Local não registrado"
+        }
         local.nome != null -> local.nome
         else -> String.format(
             BRASIL,

@@ -230,7 +230,7 @@ private fun DetalheFoto(
         )
 
         Text("📅 ${FormatadorAlbum.data(foto.dataHora)}   🕐 ${FormatadorAlbum.hora(foto.dataHora)}")
-        Text("📍 ${FormatadorAlbum.local(detalhes.local)}")
+        Text("📍 ${FormatadorAlbum.local(detalhes.local, detalhes.motivoSemLocal)}")
     }
 
     if (confirmandoApagar) {

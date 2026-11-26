@@ -42,7 +42,7 @@ class AlbumViewModel(
     private val _estado = MutableStateFlow(EstadoAlbum())
     val estado: StateFlow<EstadoAlbum> = _estado.asStateFlow()
 
-    private var localizacaoEmAndamento: Deferred<Coordenadas?>? = null
+    private var localizacaoEmAndamento: Deferred<ResultadoLocalizacao>? = null
 
     init {
         viewModelScope.launch {
@@ -64,11 +64,17 @@ class AlbumViewModel(
         _estado.update { it.copy(salvando = true) }
 
         viewModelScope.launch {
-            val coordenadas = withTimeoutOrNull(limiteLocalizacao) { pendente.await() }
+            val resultado = withTimeoutOrNull(limiteLocalizacao) { pendente.await() }
+                ?: ResultadoLocalizacao.Indisponivel(MotivoSemLocal.NAO_ENCONTRADO)
             pendente.cancel()
-            val local = coordenadas?.let { LocalFoto(it, descobrirNome(it)) }
 
-            val foto = tentar { repositorio.salvar(arquivoTemporario, dataHora, local) }
+            val (local, motivo) = when (resultado) {
+                is ResultadoLocalizacao.Encontrada ->
+                    LocalFoto(resultado.coordenadas, descobrirNome(resultado.coordenadas)) to null
+                is ResultadoLocalizacao.Indisponivel -> null to resultado.motivo
+            }
+
+            val foto = tentar { repositorio.salvar(arquivoTemporario, dataHora, local, motivo) }
             _estado.update {
                 if (foto != null) {
                     it.copy(salvando = false, fotos = maisRecentesPrimeiro(it.fotos + foto))
@@ -91,8 +97,9 @@ class AlbumViewModel(
                     tentar { repositorio.atualizarNomeLocal(foto, nome) }
                 }
             }
+            val motivo = if (local == null) tentar { repositorio.lerMotivoSemLocal(foto) } else null
             _estado.update {
-                if (it.fotoAberta?.foto == foto) it.copy(fotoAberta = DetalhesFoto(foto, local)) else it
+                if (it.fotoAberta?.foto == foto) it.copy(fotoAberta = DetalhesFoto(foto, local, motivo)) else it
             }
         }
     }
@@ -129,8 +136,11 @@ class AlbumViewModel(
         _estado.update { it.copy(erro = null) }
     }
 
-    private fun buscarLocalizacao(): Deferred<Coordenadas?> =
-        viewModelScope.async { tentar { localizacao.localizacaoAtual() } }
+    private fun buscarLocalizacao(): Deferred<ResultadoLocalizacao> =
+        viewModelScope.async {
+            tentar { localizacao.localizacaoAtual() }
+                ?: ResultadoLocalizacao.Indisponivel(MotivoSemLocal.NAO_ENCONTRADO)
+        }
 
     private suspend fun descobrirNome(coordenadas: Coordenadas): String? =
         withTimeoutOrNull(limiteLocalizacao) { tentar { nomeLocal.nomeDoLocal(coordenadas) } }

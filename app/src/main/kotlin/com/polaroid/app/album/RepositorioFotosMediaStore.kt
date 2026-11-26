@@ -28,6 +28,7 @@ class RepositorioFotosMediaStore(private val context: Context) : RepositorioFoto
 
     private val resolver = context.contentResolver
     private val nomesLocais = context.getSharedPreferences("nomes_locais", Context.MODE_PRIVATE)
+    private val motivosSemLocal = context.getSharedPreferences("motivos_sem_local", Context.MODE_PRIVATE)
 
     private val colecao: Uri =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -71,12 +72,14 @@ class RepositorioFotosMediaStore(private val context: Context) : RepositorioFoto
         arquivoTemporario: String,
         dataHora: ZonedDateTime,
         local: LocalFoto?,
+        motivoSemLocal: MotivoSemLocal?,
     ): FotoAlbum = withContext(Dispatchers.IO) {
         val temporario = File(arquivoTemporario)
         try {
             gravarExif(temporario, dataHora, local)
             val uri = inserirNaGaleria(temporario, dataHora)
             local?.nome?.let { nomesLocais.edit { putString(uri.toString(), it) } }
+            motivoSemLocal?.let { motivosSemLocal.edit { putString(uri.toString(), it.name) } }
             FotoAlbum(uri.toString(), dataHora)
         } finally {
             temporario.delete()
@@ -90,6 +93,10 @@ class RepositorioFotosMediaStore(private val context: Context) : RepositorioFoto
         LocalFoto(coordenadas, nomesLocais.getString(foto.id, null))
     }
 
+    override suspend fun lerMotivoSemLocal(foto: FotoAlbum): MotivoSemLocal? =
+        motivosSemLocal.getString(foto.id, null)
+            ?.let { nome -> MotivoSemLocal.entries.firstOrNull { it.name == nome } }
+
     override suspend fun atualizarNomeLocal(foto: FotoAlbum, nome: String) {
         nomesLocais.edit { putString(foto.id, nome) }
     }
@@ -97,6 +104,7 @@ class RepositorioFotosMediaStore(private val context: Context) : RepositorioFoto
     override suspend fun apagar(foto: FotoAlbum) = withContext(Dispatchers.IO) {
         resolver.delete(Uri.parse(foto.id), null, null)
         nomesLocais.edit { remove(foto.id) }
+        motivosSemLocal.edit { remove(foto.id) }
     }
 
     private fun gravarExif(arquivo: File, dataHora: ZonedDateTime, local: LocalFoto?) {
