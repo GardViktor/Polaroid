@@ -18,7 +18,13 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
   - Consulta **fused (Android 12+), rede e GPS ao mesmo tempo** e usa a primeira resposta (`primeiraLocalizacao`). Usar só o provedor de rede falhava em Samsung (One UI 8.5). Sem local, a foto guarda e mostra o motivo (`MotivoSemLocal`: sem permissão / localização desligada / não encontrado a tempo).
   - Interfaces `RepositorioFotos`, `ProvedorLocalizacao`, `ProvedorNomeLocal` isolam o Android para o `AlbumViewModel` ser testado com fakes.
   - Limitação conhecida: após reinstalar o app, fotos antigas continuam na galeria mas não aparecem no Álbum (Android só lista fotos criadas pela instalação atual sem permissão extra de leitura).
-- **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Calcular, Buscar e Álbum; sem biblioteca de navegação (estado salvo com `rememberSaveable`).
+- **Relatórios** (em etapas; etapa 1 = registros feita): compras, vendas e perdas de fotos em banco local **Room** (`registros/banco/BancoPolaroid`, tabela única `registros`, esquema versionado em `app/schemas/`).
+  - Compra registrada pela calculadora ("Registrar compra", confirmação); venda pela calculadora (preço pré-preenchido) ou "+ Venda"; perda por "− Perda". Tudo editável/apagável na lista.
+  - **Nunca datas futuras** (criar ou editar). Datas até o minuto.
+  - Dinheiro em **centavos (Long)**; `Centavos.de` rejeita fração de centavo. Venda guarda forma de pagamento e a **taxa congelada** (pontos-base: débito 199, crédito 499, Pix/dinheiro 0); editar mantém a taxa se a forma não mudar.
+  - `RegistrosViewModel` é compartilhado (escopo da Activity) entre Calculadora e Relatórios.
+  - Próximas etapas: 2) painel (saldo de caixa, lucro com custo médio, estoque com aviso, comparação com período anterior, tela de taxas) 3) gráficos (Vico) 4) exportar CSV.
+- **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Calcular, Buscar, Álbum e Relatórios; sem biblioteca de navegação (estado salvo com `rememberSaveable`).
 
 ## Tech Stack
 
