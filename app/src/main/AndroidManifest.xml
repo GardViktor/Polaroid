@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Álbum: câmera do app, local aproximado e gravação na galeria (Android 9 ou anterior) -->
+    <!-- Álbum: câmera do app, local preciso (o usuário ainda pode escolher "aproximada")
+         e gravação na galeria (Android 9 ou anterior) -->
     <uses-feature
         android:name="android.hardware.camera.any"
         android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />

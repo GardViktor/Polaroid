@@ -36,7 +36,8 @@ class AlbumViewModel(
     private val localizacao: ProvedorLocalizacao,
     private val nomeLocal: ProvedorNomeLocal,
     private val relogio: Clock,
-    private val limiteLocalizacao: Duration = 5.seconds,
+    // Localização precisa (GPS) pode levar alguns segundos; a foto aparece na hora, só o local espera
+    private val limiteLocalizacao: Duration = 10.seconds,
 ) : ViewModel() {
 
     private val _estado = MutableStateFlow(EstadoAlbum())

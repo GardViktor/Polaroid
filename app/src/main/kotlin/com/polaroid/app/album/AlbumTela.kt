@@ -106,6 +106,8 @@ fun AlbumTela(viewModel: AlbumViewModel = viewModel(factory = FabricaAlbumViewMo
 
 private fun permissoesNecessarias(): Array<String> = buildList {
     add(Manifest.permission.CAMERA)
+    // As duas juntas: o Android mostra "Precisa" / "Aproximada" para a pessoa escolher
+    add(Manifest.permission.ACCESS_FINE_LOCATION)
     add(Manifest.permission.ACCESS_COARSE_LOCATION)
     // Android 9 ou anterior precisa de permissão para gravar na galeria
     if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) add(Manifest.permission.WRITE_EXTERNAL_STORAGE)

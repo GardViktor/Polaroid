@@ -18,18 +18,22 @@ import java.util.Locale
 import kotlin.coroutines.resume
 
 /**
- * Localização APROXIMADA, pedida uma única vez por foto (sem rastrear em segundo plano).
+ * Localização PRECISA quando permitida (o usuário pode escolher "aproximada"), pedida uma
+ * única vez por foto, sem rastrear em segundo plano.
  *
- * Consulta ao mesmo tempo todos os provedores ligados — "fused" (Android 12+, o mais
- * confiável, inclusive em Samsung), rede e GPS — e usa a primeira resposta.
+ * Com permissão precisa: consulta "fused" (Android 12+) e GPS ao mesmo tempo e usa a
+ * primeira resposta; a rede (menos precisa, costuma errar o bairro) só entra se eles falharem.
+ * Só com aproximada: consulta todos os provedores ligados ao mesmo tempo.
  */
 class ProvedorLocalizacaoAndroid(private val context: Context) : ProvedorLocalizacao {
 
     override suspend fun localizacaoAtual(): ResultadoLocalizacao {
-        val permitido = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_COARSE_LOCATION,
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!permitido) return ResultadoLocalizacao.Indisponivel(MotivoSemLocal.SEM_PERMISSAO)
+        fun concedida(permissao: String) =
+            ContextCompat.checkSelfPermission(context, permissao) == PackageManager.PERMISSION_GRANTED
+        val precisa = concedida(Manifest.permission.ACCESS_FINE_LOCATION)
+        if (!precisa && !concedida(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            return ResultadoLocalizacao.Indisponivel(MotivoSemLocal.SEM_PERMISSAO)
+        }
 
         val gerenciador = context.getSystemService(LocationManager::class.java)
         if (gerenciador == null || !LocationManagerCompat.isLocationEnabled(gerenciador)) {
@@ -46,7 +50,13 @@ class ProvedorLocalizacaoAndroid(private val context: Context) : ProvedorLocaliz
             return ResultadoLocalizacao.Indisponivel(MotivoSemLocal.LOCALIZACAO_DESLIGADA)
         }
 
-        val coordenadas = primeiraLocalizacao(provedores.map { provedor -> { consultar(gerenciador, provedor) } })
+        val fontes = { lista: List<String> -> lista.map { provedor -> suspend { consultar(gerenciador, provedor) } } }
+        val coordenadas = if (precisa) {
+            val (precisos, rede) = provedores.partition { it != LocationManager.NETWORK_PROVIDER }
+            primeiraLocalizacao(fontes(precisos)) ?: primeiraLocalizacao(fontes(rede))
+        } else {
+            primeiraLocalizacao(fontes(provedores))
+        }
         return coordenadas?.let { ResultadoLocalizacao.Encontrada(it) }
             ?: ResultadoLocalizacao.Indisponivel(MotivoSemLocal.NAO_ENCONTRADO)
     }
