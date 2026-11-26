@@ -103,13 +103,7 @@ fun CalculadoraTela(
                 aoDiminuir = viewModel::aoDiminuirPacks,
             )
 
-            estado.custo?.let {
-                CartaoCusto(it)
-                OutlinedButton(
-                    onClick = { confirmandoCompra = viewModel.dadosCompra() },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("🛒 Registrar compra") }
-            }
+            estado.custo?.let { CartaoCusto(it) }
 
             CampoValor(
                 rotulo = "Preço de venda por foto",
@@ -122,6 +116,14 @@ fun CalculadoraTela(
             )
 
             estado.resultado?.let { CartaoResultado(it) }
+
+            // Registrar compra fica logo acima de Registrar venda (só aparece com valor pago + pack)
+            if (estado.custo != null) {
+                OutlinedButton(
+                    onClick = { confirmandoCompra = viewModel.dadosCompra() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("🛒 Registrar compra") }
+            }
 
             OutlinedButton(
                 onClick = { registros.abrirNovaVenda(precoSugerido = estado.precoVenda) },
