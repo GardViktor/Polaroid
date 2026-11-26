@@ -183,7 +183,7 @@ private fun SeletorQuantidade(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ATALHOS_QUANTIDADE.forEach { quantidade ->
                 FilterChip(
-                    selected = quantidade == atual,
+                    selected = quantidade == formulario.passo,
                     onClick = { aoSelecionar(quantidade) },
                     enabled = disponivel == null || quantidade <= disponivel,
                     label = { Text("$quantidade") },
@@ -196,9 +196,9 @@ private fun SeletorQuantidade(
         ) {
             FilledTonalButton(
                 onClick = aoDiminuir,
-                enabled = atual > 1,
-                modifier = Modifier.semantics { contentDescription = "Diminuir quantidade" },
-            ) { Text("−") }
+                enabled = atual - formulario.passo >= 1,
+                modifier = Modifier.semantics { contentDescription = "Diminuir ${formulario.passo}" },
+            ) { Text("− ${formulario.passo}") }
             Text(
                 formulario.quantidade.ifEmpty { "—" },
                 style = MaterialTheme.typography.titleLarge,
@@ -207,9 +207,9 @@ private fun SeletorQuantidade(
             )
             FilledTonalButton(
                 onClick = aoAumentar,
-                enabled = disponivel == null || atual < disponivel,
-                modifier = Modifier.semantics { contentDescription = "Aumentar quantidade" },
-            ) { Text("+") }
+                enabled = disponivel == null || atual + formulario.passo <= disponivel,
+                modifier = Modifier.semantics { contentDescription = "Aumentar ${formulario.passo}" },
+            ) { Text("+ ${formulario.passo}") }
         }
         if (disponivel != null) {
             Text(

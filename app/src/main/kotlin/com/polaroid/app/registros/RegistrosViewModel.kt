@@ -31,6 +31,8 @@ data class Formulario(
     val taxaOriginal: Pair<FormaPagamento, Int>? = null,
     /** Fotos que podem sair nessa data (venda/perda); null para compra. */
     val disponivel: Int? = null,
+    /** Quanto o +/− soma ou subtrai: o último botão de quantidade escolhido (1, 3, 5 ou 10). */
+    val passo: Int = 1,
 )
 
 data class EstadoRegistros(
@@ -108,20 +110,22 @@ class RegistrosViewModel(
         atualizarFormulario(CampoRegistro.QUANTIDADE) { it.copy(quantidade = texto) }
     }
 
-    fun aoSelecionarQuantidade(quantidade: Int) =
-        atualizarFormulario(CampoRegistro.QUANTIDADE) { it.copy(quantidade = quantidade.toString()) }
-
-    /** +1, sem passar do estoque disponível nessa data. */
-    fun aoAumentarQuantidade() = atualizarFormulario(CampoRegistro.QUANTIDADE) {
-        val atual = it.quantidade.toIntOrNull() ?: 0
-        val limite = (it.disponivel ?: QUANTIDADE_MAXIMA).coerceAtLeast(1)
-        if (atual + 1 > limite) it else it.copy(quantidade = (atual + 1).toString())
+    /** Define a quantidade e passa a usar esse valor como passo do +/−. */
+    fun aoSelecionarQuantidade(quantidade: Int) = atualizarFormulario(CampoRegistro.QUANTIDADE) {
+        it.copy(quantidade = quantidade.toString(), passo = quantidade.coerceAtLeast(1))
     }
 
-    /** −1, com mínimo de 1 foto. */
+    /** + passo, sem passar do estoque disponível nessa data. */
+    fun aoAumentarQuantidade() = atualizarFormulario(CampoRegistro.QUANTIDADE) {
+        val novo = (it.quantidade.toIntOrNull() ?: 0) + it.passo
+        val limite = (it.disponivel ?: QUANTIDADE_MAXIMA).coerceAtLeast(1)
+        if (novo > limite) it else it.copy(quantidade = novo.toString())
+    }
+
+    /** − passo, sem ficar abaixo de 1 foto. */
     fun aoDiminuirQuantidade() = atualizarFormulario(CampoRegistro.QUANTIDADE) {
-        val atual = it.quantidade.toIntOrNull() ?: 1
-        it.copy(quantidade = (atual - 1).coerceAtLeast(1).toString())
+        val novo = (it.quantidade.toIntOrNull() ?: 1) - it.passo
+        if (novo < 1) it else it.copy(quantidade = novo.toString())
     }
 
     fun aoMudarValor(texto: String) {
