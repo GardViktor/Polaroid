@@ -11,6 +11,8 @@ data class AnuncioBruto(
     val link: String,
     val freteCentavos: Long? = null,
     val categoriaGarantida: Boolean = false,
+    /** Anúncio que a loja vende só no balcão (ex.: "À venda apenas na loja física"). */
+    val somenteLojaFisica: Boolean = false,
 )
 
 /** Oferta compatível e pronta para o ranking. [fotos]/[precoPorFoto] null = quantidade desconhecida. */
@@ -22,6 +24,7 @@ data class Oferta(
     val link: String,
     val fotos: Int?,
     val precoPorFoto: BigDecimal?,
+    val somenteLojaFisica: Boolean = false,
 ) {
     /** Só informativo (selo na tela); o frete NÃO entra no ranking. */
     val freteGratis: Boolean get() = freteCentavos == 0L
@@ -54,6 +57,7 @@ object Ranking {
             precoCentavos = anuncio.precoCentavos,
             freteCentavos = anuncio.freteCentavos,
             link = anuncio.link,
+            somenteLojaFisica = anuncio.somenteLojaFisica,
             fotos = fotos,
             precoPorFoto = fotos?.let {
                 BigDecimal.valueOf(anuncio.precoCentavos, 2).divide(BigDecimal(it), MathContext.DECIMAL128)

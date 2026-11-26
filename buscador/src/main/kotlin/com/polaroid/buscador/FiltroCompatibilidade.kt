@@ -57,6 +57,7 @@ object ExtratorFotos {
     // "20 fotos", "100 poses", "60 folhas"
     private val NUMERO_COM_UNIDADE = Regex("\\b(\\d{1,3}) $UNIDADE\\b")
     private val DUPLO = Regex("\\b(twin pack|pacote duplo|pack duplo|duplo)\\b")
+    private val UNIDADES = Regex("\\b(\\d{1,3}) (un|und|unid|unidades)\\b")
     // "2 cartuchos de 10 poses", "3 pacotes de 10 fotos": a composição já diz o total
     private val PACOTES_DE = Regex("\\b(\\d{1,2}) (cartuchos?|pacotes?|packs?) de (\\d{1,3}) $UNIDADE\\b")
 
@@ -76,9 +77,11 @@ object ExtratorFotos {
         }
 
         MULTIPLICACAO.find(t)?.let { m ->
-            val pacotes = m.groupValues[1].toInt()
-            val porPacote = m.groupValues[2].toInt()
-            if (porPacote in FOTOS_POR_PACOTE && pacotes in 1..20) return pacotes * porPacote
+            val a = m.groupValues[1].toInt()
+            val b = m.groupValues[2].toInt()
+            // "2x10" (pacotes x fotos) ou "10 x 2" (fotos x pacotes)
+            if (b in FOTOS_POR_PACOTE && a in 1..20) return a * b
+            if (a in FOTOS_POR_PACOTE && b in 1..20) return a * b
         }
 
         val comUnidade = NUMERO_COM_UNIDADE.findAll(t).toList()
@@ -91,6 +94,8 @@ object ExtratorFotos {
         }
 
         comUnidade.firstOrNull()?.let { return it.groupValues[1].toInt() }
+        // "PT 20 UN", "com 20 Unidades": só quando o título não fala em fotos/poses/folhas
+        UNIDADES.find(t)?.let { m -> m.groupValues[1].toInt().takeIf { it in 5..200 }?.let { return it } }
         if (DUPLO.containsMatchIn(t)) return 20
         return null
     }
