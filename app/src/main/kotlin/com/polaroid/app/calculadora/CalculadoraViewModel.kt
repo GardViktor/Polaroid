@@ -27,6 +27,8 @@ data class ResultadoTela(
     val prejuizo: Boolean,
 )
 
+data class DadosCompra(val valorPago: BigDecimal, val totalFotos: Int)
+
 data class EstadoCalculadora(
     val valorPago: String = "",
     val tamanhoPack: Int? = null,
@@ -85,6 +87,14 @@ class CalculadoraViewModel : ViewModel() {
 
     fun aoDiminuirPacks() = atualizar {
         it.copy(quantidadePacks = (it.quantidadePacks - 1).coerceAtLeast(MINIMO_PACKS))
+    }
+
+    /** Valor pago e total de fotos válidos, para registrar a compra; null se incompletos. */
+    fun dadosCompra(): DadosCompra? {
+        val estado = _estado.value
+        val valorPago = EntradaNumerica.converterValor(estado.valorPago) ?: return null
+        val totalFotos = estado.totalFotos ?: return null
+        return DadosCompra(valorPago, totalFotos)
     }
 
     private fun atualizar(mudanca: (EstadoCalculadora) -> EstadoCalculadora) {

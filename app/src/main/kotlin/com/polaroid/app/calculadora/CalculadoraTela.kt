@@ -12,7 +12,18 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import com.polaroid.app.registros.FabricaRegistrosViewModel
+import com.polaroid.app.registros.FormularioRegistroDialog
+import com.polaroid.app.registros.RegistrosViewModel
+import java.time.LocalDate
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -44,10 +55,23 @@ private const val APROXIMADO = "≈ "
 private const val MAXIMO_PACKS = 99
 
 @Composable
-fun CalculadoraTela(viewModel: CalculadoraViewModel = viewModel()) {
+fun CalculadoraTela(
+    viewModel: CalculadoraViewModel = viewModel(),
+    registros: RegistrosViewModel = viewModel(factory = FabricaRegistrosViewModel),
+) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val estadoRegistros by registros.estado.collectAsStateWithLifecycle()
+    var confirmandoCompra by remember { mutableStateOf<DadosCompra?>(null) }
+    val avisos = remember { SnackbarHostState() }
 
-    Scaffold { padding ->
+    LaunchedEffect(estadoRegistros.mensagem) {
+        estadoRegistros.mensagem?.let {
+            avisos.showSnackbar(it)
+            registros.aoDispensarMensagem()
+        }
+    }
+
+    Scaffold(snackbarHost = { SnackbarHost(avisos) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -79,7 +103,13 @@ fun CalculadoraTela(viewModel: CalculadoraViewModel = viewModel()) {
                 aoDiminuir = viewModel::aoDiminuirPacks,
             )
 
-            estado.custo?.let { CartaoCusto(it) }
+            estado.custo?.let {
+                CartaoCusto(it)
+                OutlinedButton(
+                    onClick = { confirmandoCompra = viewModel.dadosCompra() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("🛒 Registrar compra") }
+            }
 
             CampoValor(
                 rotulo = "Preço de venda por foto",
@@ -92,7 +122,42 @@ fun CalculadoraTela(viewModel: CalculadoraViewModel = viewModel()) {
             )
 
             estado.resultado?.let { CartaoResultado(it) }
+
+            OutlinedButton(
+                onClick = { registros.abrirNovaVenda(precoSugerido = estado.precoVenda) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("💰 Registrar venda") }
         }
+    }
+
+    confirmandoCompra?.let { compra ->
+        AlertDialog(
+            onDismissRequest = { confirmandoCompra = null },
+            title = { Text("Registrar compra?") },
+            text = {
+                Text("${compra.totalFotos} fotos por ${Formatador.moeda(compra.valorPago)}, com data e hora de agora. Você pode editar depois em Relatórios.")
+            },
+            confirmButton = {
+                Button(onClick = {
+                    registros.registrarCompra(compra.valorPago, compra.totalFotos)
+                    confirmandoCompra = null
+                }) { Text("Registrar") }
+            },
+            dismissButton = { TextButton(onClick = { confirmandoCompra = null }) { Text("Cancelar") } },
+        )
+    }
+
+    estadoRegistros.formulario?.let { formulario ->
+        FormularioRegistroDialog(
+            formulario = formulario,
+            hoje = LocalDate.now(),
+            aoMudarQuantidade = registros::aoMudarQuantidade,
+            aoMudarValor = registros::aoMudarValor,
+            aoMudarDataHora = registros::aoMudarDataHora,
+            aoMudarForma = registros::aoMudarFormaPagamento,
+            aoSalvar = registros::salvar,
+            aoCancelar = registros::cancelar,
+        )
     }
 }
 

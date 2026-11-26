@@ -19,6 +19,7 @@ import androidx.compose.ui.res.painterResource
 import com.polaroid.app.album.AlbumTela
 import com.polaroid.app.busca.BuscarTela
 import com.polaroid.app.calculadora.CalculadoraTela
+import com.polaroid.app.registros.RelatoriosTela
 
 /**
  * Tela raiz com menu inferior. A aba escolhida sobrevive a rotação; o estado da
@@ -52,6 +53,7 @@ fun AppPrincipal() {
                 Destino.CALCULADORA -> CalculadoraTela()
                 Destino.BUSCAR -> BuscarTela()
                 Destino.ALBUM -> AlbumTela()
+                Destino.RELATORIOS -> RelatoriosTela()
             }
         }
     }

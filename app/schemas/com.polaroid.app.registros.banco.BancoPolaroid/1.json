@@ -1,0 +1,75 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "2aad5e4944445575289b67c3b32bcc79",
+    "entities": [
+      {
+        "tableName": "registros",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tipo` TEXT NOT NULL, `dataHoraMillis` INTEGER NOT NULL, `quantidadeFotos` INTEGER NOT NULL, `valorCentavos` INTEGER, `formaPagamento` TEXT, `taxaPontosBase` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataHoraMillis",
+            "columnName": "dataHoraMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quantidadeFotos",
+            "columnName": "quantidadeFotos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "valorCentavos",
+            "columnName": "valorCentavos",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "formaPagamento",
+            "columnName": "formaPagamento",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "taxaPontosBase",
+            "columnName": "taxaPontosBase",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_registros_dataHoraMillis",
+            "unique": false,
+            "columnNames": [
+              "dataHoraMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_registros_dataHoraMillis` ON `${TABLE_NAME}` (`dataHoraMillis`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2aad5e4944445575289b67c3b32bcc79')"
+    ]
+  }
+}
