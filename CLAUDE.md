@@ -6,15 +6,17 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
 
 ## Funcionalidades
 
-- **Calculadora de custo e lucro** (primeira feature em desenvolvimento):
+- **Calculadora de custo e lucro** (implementada):
   - Entradas: valor pago na compra (filmes + frete), quantidade de fotos, preço de venda por foto.
-  - Saídas: custo por foto, lucro por foto, lucro total e margem de lucro.
-  - Deve tratar quantidade zero/valores negativos (erro), prejuízo e arredondamento em centavos.
+  - Saídas: custo por foto, lucro por foto, lucro total e margem de lucro (sobre o preço de venda).
+  - Calcula enquanto digita; caracteres inválidos são bloqueados na hora; erros só aparecem ao sair do campo; "≈" quando houve arredondamento; prejuízo em vermelho.
 - **Agregador de promoções** (futuro): reúne ofertas de filmes compatíveis com a Instax Mini 12.
 
 ## Tech Stack
 
-- **App (Android)**: Kotlin + Jetpack Compose, testes unitários com JUnit
+- **App (Android)**: Kotlin 2.4 + Jetpack Compose (Material 3), Gradle 9.9 + AGP 9.5 (Kotlin embutido no AGP — não usar o plugin `kotlin("android")`), compileSdk 37.1, minSdk 26
+- **Testes**: JUnit 5 no módulo `calculadora`, JUnit 4 (`kotlin.test`) no `app`
+- **Dispositivo de teste**: celular físico via USB (sem emulador, por espaço em disco)
 - **Backend (futuro, para o agregador)**: Python 3.12 + FastAPI + PostgreSQL 17, em Docker — ver `backend/`
 
 ## Estrutura
@@ -23,9 +25,24 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
   - Dinheiro sempre em `BigDecimal`. **Cada centavo conta**: contas internas com precisão total; arredondar (2 casas, HALF_UP) só o que é inevitável — custo/lucro por foto e margem em divisões não exatas — e sinalizar no resultado (`valoresPorFotoArredondados`, `margemArredondada`) para a tela exibir um aviso.
   - Nunca derivar um valor de outro já arredondado. Lucro total = receita − valor pago (exato).
   - Entradas com fração de centavo (ex.: 10,005) são rejeitadas.
-- `test.ps1` — roda os testes dentro do Docker (imagem `gradle:8.14-jdk21`); não precisa de Java/Android SDK local.
-  - Todos os testes: `./test.ps1`
-  - Tarefa específica: `./test.ps1 :calculadora:test`
+- `app/` — app Android. Tela da calculadora em `app/src/main/kotlin/com/polaroid/app/calculadora/`:
+  - `CalculadoraViewModel` (estado + validação, testável sem Android), `EntradaNumerica` (filtro/conversão do que é digitado; aceita vírgula ou ponto como decimal), `Formatador` (R$ 1.234,56 e 33,33%), `CalculadoraTela` (Compose, sem lógica).
+  - Regra: lógica de tela fica no ViewModel/objetos puros com teste unitário; Composables só exibem.
+- `test.ps1` — roda os testes dos módulos Kotlin puros no Docker, sem SDK local (exclui o `app` via `-PsemAndroid`).
+
+## Comandos
+
+Gradle local precisa do JDK do Android Studio (o Java 25 do PATH não serve para todos os casos):
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+.\gradlew.bat test              # todos os testes (calculadora + app)
+.\gradlew.bat assembleDebug     # gera app/build/outputs/apk/debug/app-debug.apk
+.\gradlew.bat installDebug      # instala no celular conectado via USB
+./test.ps1                      # testes da calculadora no Docker
+```
+
+SDK em `%LOCALAPPDATA%\Android\Sdk` (gerenciado com `cmdline-tools\latest\bin\android.exe sdk ...`; o `sdkmanager` foi descontinuado).
 - `backend/` — API FastAPI + Postgres via Docker Compose (parado por enquanto)
   - Subir: `cd backend && docker compose up -d --build` → `http://localhost:8000/health`
   - Credenciais locais em `backend/.env` (não versionar; modelo em `.env.example`)
