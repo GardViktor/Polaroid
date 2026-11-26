@@ -19,7 +19,10 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
 
 ## Estrutura
 
-- `calculadora/` — módulo Kotlin puro (sem dependência de Android) com a lógica de custo/lucro. Valores monetários sempre em `BigDecimal`, 2 casas, arredondamento HALF_UP.
+- `calculadora/` — módulo Kotlin puro (sem dependência de Android) com a lógica de custo/lucro (`CalculadoraLucro.calcular`).
+  - Dinheiro sempre em `BigDecimal`. **Cada centavo conta**: contas internas com precisão total; arredondar (2 casas, HALF_UP) só o que é inevitável — custo/lucro por foto e margem em divisões não exatas — e sinalizar no resultado (`valoresPorFotoArredondados`, `margemArredondada`) para a tela exibir um aviso.
+  - Nunca derivar um valor de outro já arredondado. Lucro total = receita − valor pago (exato).
+  - Entradas com fração de centavo (ex.: 10,005) são rejeitadas.
 - `test.ps1` — roda os testes dentro do Docker (imagem `gradle:8.14-jdk21`); não precisa de Java/Android SDK local.
   - Todos os testes: `./test.ps1`
   - Tarefa específica: `./test.ps1 :calculadora:test`
