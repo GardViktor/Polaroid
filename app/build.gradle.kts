@@ -4,6 +4,12 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
+}
+
+// Esquema do banco versionado no git (necessário para migrações futuras sem perder dados)
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 // Chave de assinatura do release: fica FORA do repositório (~/.polaroid/keystore.properties).
@@ -84,6 +90,11 @@ dependencies {
     implementation("androidx.camera:camera-view:1.7.0")
     implementation("androidx.exifinterface:exifinterface:1.4.2")
     implementation("io.coil-kt.coil3:coil-compose:3.6.3")
+
+    // Relatórios: banco de dados local (compras, vendas, perdas)
+    implementation("androidx.room:room-runtime:2.8.5")
+    implementation("androidx.room:room-ktx:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
 
     testImplementation(kotlin("test-junit"))
     testImplementation("junit:junit:4.13.2")
