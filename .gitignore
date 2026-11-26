@@ -1,5 +1,7 @@
-# Segredos
+# Segredos: todo .env (em qualquer pasta), exceto os modelos .env.example
 .env
+.env.*
+!.env.example
 
 # Python (backend)
 __pycache__/
