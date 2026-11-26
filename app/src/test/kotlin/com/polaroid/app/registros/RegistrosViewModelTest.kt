@@ -156,6 +156,21 @@ class RegistrosViewModelTest {
     }
 
     @Test
+    fun `pizza segue o periodo e inclui perdas`() = runTest(dispatcher) {
+        val vm = criar(
+            compraBase,
+            Registro.Venda(2, instante(agora.minusDays(1)), 3, 1000, FormaPagamento.PIX, 0),
+            Registro.Perda(3, instante(agora.minusDays(1)), 1),
+            Registro.Venda(4, instante(agora.minusMonths(1)), 5, 1000, FormaPagamento.CREDITO, 499),
+        )
+
+        assertEquals(listOf("Pix", "Perdas"), vm.estado.value.fatiasPizza.map { it.rotulo })
+
+        vm.aoPeriodoAnterior()
+        assertEquals(listOf("Crédito"), vm.estado.value.fatiasPizza.map { it.rotulo })
+    }
+
+    @Test
     fun `trocar a metrica do grafico`() = runTest(dispatcher) {
         val vm = criar(compraBase)
 
