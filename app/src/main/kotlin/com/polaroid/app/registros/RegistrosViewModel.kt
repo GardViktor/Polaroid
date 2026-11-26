@@ -31,8 +31,6 @@ data class Formulario(
     val taxaOriginal: Pair<FormaPagamento, Int>? = null,
     /** Fotos que podem sair nessa data (venda/perda); null para compra. */
     val disponivel: Int? = null,
-    /** Quanto o +/− soma ou subtrai: o último botão de quantidade escolhido (1, 3, 5 ou 10). */
-    val passo: Int = 1,
 )
 
 data class EstadoRegistros(
@@ -82,10 +80,10 @@ class RegistrosViewModel(
 
     fun abrirNovaVenda(precoSugerido: String = "") {
         val preco = precoSugerido.takeIf(EntradaNumerica::aceitaValor).orEmpty()
-        abrir(Formulario(TipoRegistro.VENDA, agoraNoMinuto(), quantidade = "1", valor = preco))
+        abrir(Formulario(TipoRegistro.VENDA, agoraNoMinuto(), quantidade = "0", valor = preco))
     }
 
-    fun abrirNovaPerda() = abrir(Formulario(TipoRegistro.PERDA, agoraNoMinuto(), quantidade = "1"))
+    fun abrirNovaPerda() = abrir(Formulario(TipoRegistro.PERDA, agoraNoMinuto(), quantidade = "0"))
 
     fun abrirEdicao(registro: Registro) {
         val dataHora = LocalDateTime.ofInstant(registro.dataHora, relogio.zone)
@@ -112,22 +110,14 @@ class RegistrosViewModel(
         atualizarFormulario(CampoRegistro.QUANTIDADE) { it.copy(quantidade = texto) }
     }
 
-    /** Define a quantidade e passa a usar esse valor como passo do +/−. */
-    fun aoSelecionarQuantidade(quantidade: Int) = atualizarFormulario(CampoRegistro.QUANTIDADE) {
-        it.copy(quantidade = quantidade.toString(), passo = quantidade.coerceAtLeast(1))
-    }
-
-    /** + passo, sem passar do estoque disponível nessa data. */
-    fun aoAumentarQuantidade() = atualizarFormulario(CampoRegistro.QUANTIDADE) {
-        val novo = (it.quantidade.toIntOrNull() ?: 0) + it.passo
-        val limite = (it.disponivel ?: QUANTIDADE_MAXIMA).coerceAtLeast(1)
-        if (novo > limite) it else it.copy(quantidade = novo.toString())
-    }
-
-    /** − passo, sem ficar abaixo de 1 foto. */
-    fun aoDiminuirQuantidade() = atualizarFormulario(CampoRegistro.QUANTIDADE) {
-        val novo = (it.quantidade.toIntOrNull() ?: 1) - it.passo
-        if (novo < 1) it else it.copy(quantidade = novo.toString())
+    /**
+     * Botões +1/+3/+5/+10 e −1/−3/−5/−10: somam ao total (ex.: 18 = +10 +5 +3).
+     * Ignora o toque se passar do disponível nessa data ou ficar abaixo de zero.
+     */
+    fun aoSomarQuantidade(delta: Int) = atualizarFormulario(CampoRegistro.QUANTIDADE) {
+        val novo = (it.quantidade.toIntOrNull() ?: 0) + delta
+        val limite = it.disponivel ?: QUANTIDADE_MAXIMA
+        if (novo < 0 || novo > limite) it else it.copy(quantidade = novo.toString())
     }
 
     fun aoMudarValor(texto: String) {

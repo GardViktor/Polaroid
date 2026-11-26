@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.contentDescription
@@ -52,9 +52,7 @@ fun FormularioRegistroDialog(
     formulario: Formulario,
     hoje: LocalDate,
     aoMudarQuantidade: (String) -> Unit,
-    aoSelecionarQuantidade: (Int) -> Unit,
-    aoAumentarQuantidade: () -> Unit,
-    aoDiminuirQuantidade: () -> Unit,
+    aoSomarQuantidade: (Int) -> Unit,
     aoMudarValor: (String) -> Unit,
     aoMudarDataHora: (LocalDateTime) -> Unit,
     aoMudarForma: (FormaPagamento) -> Unit,
@@ -102,12 +100,7 @@ fun FormularioRegistroDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
-                    SeletorQuantidade(
-                        formulario = formulario,
-                        aoSelecionar = aoSelecionarQuantidade,
-                        aoAumentar = aoAumentarQuantidade,
-                        aoDiminuir = aoDiminuirQuantidade,
-                    )
+                    SeletorQuantidade(formulario = formulario, aoSomar = aoSomarQuantidade)
                 }
 
                 if (formulario.tipo != TipoRegistro.PERDA) {
@@ -167,49 +160,46 @@ fun FormularioRegistroDialog(
 
 private val ATALHOS_QUANTIDADE = listOf(1, 3, 5, 10)
 
-/** Botões 1/3/5/10 + contador −/+, limitado ao estoque disponível. */
+/**
+ * Botões que somam (+1 +3 +5 +10) e subtraem (−1 −3 −5 −10) do total, sem resetar:
+ * 18 fotos = +10 +5 +3. Desativados quando passariam do disponível ou abaixo de zero.
+ */
 @Composable
-private fun SeletorQuantidade(
-    formulario: Formulario,
-    aoSelecionar: (Int) -> Unit,
-    aoAumentar: () -> Unit,
-    aoDiminuir: () -> Unit,
-) {
+private fun SeletorQuantidade(formulario: Formulario, aoSomar: (Int) -> Unit) {
     val atual = formulario.quantidade.toIntOrNull() ?: 0
     val disponivel = formulario.disponivel
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Quantidade de fotos", style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ATALHOS_QUANTIDADE.forEach { quantidade ->
-                FilterChip(
-                    selected = quantidade == formulario.passo,
-                    onClick = { aoSelecionar(quantidade) },
-                    enabled = disponivel == null || quantidade <= disponivel,
-                    label = { Text("$quantidade") },
-                )
+        Text(
+            "$atual",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            ATALHOS_QUANTIDADE.forEach { passo ->
+                FilledTonalButton(
+                    onClick = { aoSomar(passo) },
+                    enabled = disponivel == null || atual + passo <= disponivel,
+                    contentPadding = PaddingValues(horizontal = 4.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = "Somar $passo" },
+                ) { Text("+$passo") }
             }
         }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FilledTonalButton(
-                onClick = aoDiminuir,
-                enabled = atual - formulario.passo >= 1,
-                modifier = Modifier.semantics { contentDescription = "Diminuir ${formulario.passo}" },
-            ) { Text("− ${formulario.passo}") }
-            Text(
-                formulario.quantidade.ifEmpty { "—" },
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(min = 40.dp),
-            )
-            FilledTonalButton(
-                onClick = aoAumentar,
-                enabled = disponivel == null || atual + formulario.passo <= disponivel,
-                modifier = Modifier.semantics { contentDescription = "Aumentar ${formulario.passo}" },
-            ) { Text("+ ${formulario.passo}") }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            ATALHOS_QUANTIDADE.forEach { passo ->
+                OutlinedButton(
+                    onClick = { aoSomar(-passo) },
+                    enabled = atual - passo >= 0,
+                    contentPadding = PaddingValues(horizontal = 4.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = "Subtrair $passo" },
+                ) { Text("−$passo") }
+            }
         }
         if (disponivel != null) {
             Text(
