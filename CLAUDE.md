@@ -30,7 +30,8 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
     - **Saldo de caixa** (geral) = vendas − taxas − compras (começa negativo). **Estoque baixo** quando estoque ≤ limite (padrão 10).
     - Taxas e frações de centavo do custo médio ficam com precisão total; só a tela arredonda e mostra "≈".
     - ⚙ Configurações (`RepositorioConfiguracaoPrefs`): taxas por forma de pagamento + limite de estoque baixo; só afetam vendas novas.
-  - Próximas etapas: 3) gráficos (Vico) 4) exportar CSV.
+  - **Gráfico (etapa 3, feito)**: `Grafico.montar` (puro, testado) divide o período em barras (Dia→horas, Semana→seg–dom, Mês→dias, Trimestre→semanas de 7 dias, Ano→meses). Vico 3 (`GraficoRelatorio`): barras = métrica escolhida (Fotos/Faturamento/Lucro, eixo esquerdo) + linha = preço médio por foto (eixo direito, só barras com venda); toque mostra valores. API Vico 3: usar `columnModel`/`lineModel` (os antigos `columnSeries`/`lineSeries` estão depreciados).
+  - Próxima etapa: 4) exportar CSV.
 - **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Buscar, Álbum, Calcular e Relatórios (nessa ordem; o app abre em Calcular); sem biblioteca de navegação (estado salvo com `rememberSaveable`).
 
 ## Tech Stack
