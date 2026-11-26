@@ -71,6 +71,22 @@ class GraficoTest {
         assertEquals(9, pontos[10].fotosVendidas) // novembro
     }
 
+    // --- Rótulo do eixo (a biblioteca fecha o app se receber texto vazio) ---
+
+    @Test
+    fun `rotulo da barra dentro da lista`() {
+        assertEquals("Ter", Grafico.rotuloDaBarra(listOf("Seg", "Ter"), 1.0))
+    }
+
+    @Test
+    fun `rotulo nunca fica vazio fora da lista`() {
+        // Troca de outubro (31 barras) para novembro (30): por um instante o gráfico ainda pede a barra 31
+        assertEquals("31", Grafico.rotuloDaBarra(List(30) { "${it + 1}" }, 30.0))
+        assertEquals("1", Grafico.rotuloDaBarra(null, 0.0))
+        assertEquals("3", Grafico.rotuloDaBarra(listOf("a", " "), 2.0))
+        assertEquals("2", Grafico.rotuloDaBarra(listOf("a", " "), 1.0))
+    }
+
     // --- Valores de cada barra ---
 
     @Test
