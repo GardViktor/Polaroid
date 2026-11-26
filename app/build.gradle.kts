@@ -1,7 +1,16 @@
+import java.util.Properties
+
 // AGP 9 já inclui suporte a Kotlin (não precisa do plugin kotlin("android"))
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+// Chave de assinatura do release: fica FORA do repositório (~/.polaroid/keystore.properties).
+// Sem o arquivo, o release é gerado sem assinatura (não instala, mas o build não quebra).
+val arquivoChave = File(System.getProperty("user.home"), ".polaroid/keystore.properties")
+val propriedadesChave = Properties().apply {
+    if (arquivoChave.exists()) arquivoChave.inputStream().use { load(it) }
 }
 
 android {
@@ -18,9 +27,29 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        if (arquivoChave.exists()) {
+            create("release") {
+                storeFile = file(propriedadesChave.getProperty("storeFile"))
+                storePassword = propriedadesChave.getProperty("storePassword")
+                keyAlias = propriedadesChave.getProperty("keyAlias")
+                keyPassword = propriedadesChave.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            // Debug e release instalam lado a lado no celular
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
-            isMinifyEnabled = false
+            // R8: remove código não usado e otimiza (app mais rápido e menor)
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
