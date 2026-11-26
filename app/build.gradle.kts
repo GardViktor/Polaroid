@@ -77,6 +77,15 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
+    // Álbum: câmera, dados da foto (EXIF) e miniaturas leves
+    implementation("androidx.camera:camera-core:1.7.0")
+    implementation("androidx.camera:camera-camera2:1.7.0")
+    implementation("androidx.camera:camera-lifecycle:1.7.0")
+    implementation("androidx.camera:camera-view:1.7.0")
+    implementation("androidx.exifinterface:exifinterface:1.4.2")
+    implementation("io.coil-kt.coil3:coil-compose:3.6.3")
+
     testImplementation(kotlin("test-junit"))
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 }
