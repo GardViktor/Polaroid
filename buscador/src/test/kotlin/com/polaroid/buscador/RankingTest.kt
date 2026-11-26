@@ -54,10 +54,32 @@ class RankingTest {
     }
 
     @Test
-    fun `frete conhecido entra no preco por foto`() {
+    fun `frete nao entra no preco por foto para comparar todas as lojas igual`() {
         val oferta = Ranking.montar(listOf(anuncio("Filme Instax Mini 20 Fotos", 12000, freteCentavos = 2000))).single()
-        assertDinheiro("7", oferta.precoPorFoto) // (120 + 20) / 20
-        assertEquals(14000L, oferta.totalCentavos)
+        assertDinheiro("6", oferta.precoPorFoto) // 120 / 20, frete fica de fora
+        assertEquals(2000L, oferta.freteCentavos) // guardado só para mostrar na tela
+    }
+
+    @Test
+    fun `frete nao muda a ordem`() {
+        val ofertas = Ranking.montar(
+            listOf(
+                anuncio("Filme Instax Mini 20 Fotos", 12000, loja = "A", link = "https://a/1", freteCentavos = 0), // R$ 6,00/foto
+                anuncio("Filme Instax Mini 20 Fotos", 11000, loja = "B", link = "https://b/1", freteCentavos = 3000), // R$ 5,50/foto
+            ),
+        )
+        assertEquals(listOf("B", "A"), ofertas.map { it.loja })
+    }
+
+    @Test
+    fun `no empate vem primeiro o menor preco`() {
+        val ofertas = Ranking.montar(
+            listOf(
+                anuncio("Filme Instax Mini 100 Poses", 60000, loja = "Grande"), // R$ 6,00/foto
+                anuncio("Filme Instax Mini 20 Fotos", 12000, loja = "Pequeno"), // R$ 6,00/foto
+            ),
+        )
+        assertEquals(listOf("Pequeno", "Grande"), ofertas.map { it.loja })
     }
 
     @Test
