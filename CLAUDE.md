@@ -19,6 +19,10 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
 
 ## Estrutura
 
+- `calculadora/` — módulo Kotlin puro (sem dependência de Android) com a lógica de custo/lucro. Valores monetários sempre em `BigDecimal`, 2 casas, arredondamento HALF_UP.
+- `test.ps1` — roda os testes dentro do Docker (imagem `gradle:8.14-jdk21`); não precisa de Java/Android SDK local.
+  - Todos os testes: `./test.ps1`
+  - Tarefa específica: `./test.ps1 :calculadora:test`
 - `backend/` — API FastAPI + Postgres via Docker Compose (parado por enquanto)
   - Subir: `cd backend && docker compose up -d --build` → `http://localhost:8000/health`
   - Credenciais locais em `backend/.env` (não versionar; modelo em `.env.example`)
