@@ -22,7 +22,7 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
   - Compra registrada pela calculadora ("Registrar compra", confirmação); venda pela calculadora (preço pré-preenchido) ou "+ Venda"; perda por "− Perda". Tudo editável/apagável na lista.
   - **Nunca datas futuras** (criar ou editar). Datas até o minuto.
   - **Estoque nunca negativo em nenhum momento** (`Estoque`: compras entram, vendas/perdas saem, em ordem de data; no mesmo instante a compra entra primeiro). Vale para criar, editar (inclusive mudar data) e apagar. Se os dados já estiverem inconsistentes, só bloqueia o que **piora** (`menorSaldo`), para correções serem possíveis; a tela mostra aviso de estoque negativo.
-  - Venda e perda: quantidade por botões 1/3/5/10 + contador −/+, limitado ao **disponível na data** (`Estoque.disponivelEm`, que reserva o que vendas posteriores já usam). Compra usa campo de texto.
+  - Venda e perda: quantidade por botões 1/3/5/10 + contador −/+ cujo **passo é o último botão escolhido** (3 → +3/−3; mínimo 1 foto), limitado ao **disponível na data** (`Estoque.disponivelEm`, que reserva o que vendas posteriores já usam). Compra usa campo de texto.
   - Dinheiro em **centavos (Long)**; `Centavos.de` rejeita fração de centavo. Venda guarda forma de pagamento e a **taxa congelada** (pontos-base: débito 199, crédito 499, Pix/dinheiro 0); editar mantém a taxa se a forma não mudar.
   - `RegistrosViewModel` é compartilhado (escopo da Activity) entre Calculadora e Relatórios.
   - Próximas etapas: 2) painel (saldo de caixa, lucro com custo médio, estoque com aviso, comparação com período anterior, tela de taxas) 3) gráficos (Vico) 4) exportar CSV.
