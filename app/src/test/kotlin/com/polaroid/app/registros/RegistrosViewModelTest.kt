@@ -150,6 +150,66 @@ class RegistrosViewModelTest {
     }
 
     @Test
+    fun `o botao escolhido define o passo do mais e do menos`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+        vm.abrirNovaVenda()
+
+        vm.aoSelecionarQuantidade(3)
+        vm.aoAumentarQuantidade()
+        vm.aoAumentarQuantidade()
+        assertEquals("9", vm.estado.value.formulario?.quantidade)
+
+        vm.aoDiminuirQuantidade()
+        assertEquals("6", vm.estado.value.formulario?.quantidade)
+    }
+
+    @Test
+    fun `trocar de botao troca o passo`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+        vm.abrirNovaVenda()
+        vm.aoSelecionarQuantidade(10)
+        vm.aoAumentarQuantidade()
+        assertEquals("20", vm.estado.value.formulario?.quantidade)
+
+        vm.aoSelecionarQuantidade(1)
+        vm.aoAumentarQuantidade()
+        assertEquals("2", vm.estado.value.formulario?.quantidade)
+    }
+
+    @Test
+    fun `menos nao deixa ficar abaixo de 1 foto`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+        vm.abrirNovaVenda()
+        vm.aoSelecionarQuantidade(3)
+
+        vm.aoDiminuirQuantidade()
+
+        assertEquals("3", vm.estado.value.formulario?.quantidade)
+    }
+
+    @Test
+    fun `mais nao passa do disponivel mesmo com passo grande`() = runTest(dispatcher) {
+        val vm = criar(Registro.Compra(1, instante(agora.minusDays(1)), 7, 7000))
+        vm.abrirNovaVenda()
+        vm.aoSelecionarQuantidade(5)
+
+        vm.aoAumentarQuantidade()
+
+        assertEquals("5", vm.estado.value.formulario?.quantidade)
+    }
+
+    @Test
+    fun `edicao comeca com passo 1`() = runTest(dispatcher) {
+        val venda = Registro.Venda(7, instante(agora.minusDays(1)), 7, 1000, FormaPagamento.PIX, 0)
+        val vm = criar(compraBase, venda)
+
+        vm.abrirEdicao(venda)
+        vm.aoAumentarQuantidade()
+
+        assertEquals("8", vm.estado.value.formulario?.quantidade)
+    }
+
+    @Test
     fun `mais para no estoque disponivel`() = runTest(dispatcher) {
         val vm = criar(Registro.Compra(1, instante(agora.minusDays(1)), 4, 4000))
         vm.abrirNovaVenda()
