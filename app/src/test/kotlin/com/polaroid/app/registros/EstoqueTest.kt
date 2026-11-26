@@ -50,6 +50,16 @@ class EstoqueTest {
     }
 
     @Test
+    fun `compra com segundos conta para venda no mesmo minuto`() {
+        // Compra gravada às 12:00:40 e venda escolhida para 12:00 (o seletor não tem segundos)
+        val compra = compra(1, dia1.plusSeconds(40), 10)
+        val venda = venda(2, dia1, 10)
+
+        assertNull(Estoque.primeiraFalta(listOf(compra, venda)))
+        assertEquals(10, Estoque.disponivelEm(listOf(compra), dia1))
+    }
+
+    @Test
     fun `perda tambem consome estoque`() {
         assertNotNull(Estoque.primeiraFalta(listOf(compra(1, dia(1), 10), venda(2, dia(2), 9), perda(3, dia(3), 2))))
     }

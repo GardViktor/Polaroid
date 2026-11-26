@@ -74,8 +74,31 @@ class RegistrosViewModelTest {
         val compra = assertIs<Registro.Compra>(repositorio.registros.value.single())
         assertEquals(12000L, compra.valorPagoCentavos)
         assertEquals(20, compra.quantidadeFotos)
-        assertEquals(relogio.instant(), compra.dataHora)
         assertEquals("Compra registrada", vm.estado.value.mensagem)
+    }
+
+    @Test
+    fun `compra pela calculadora e gravada no minuto, sem segundos`() = runTest(dispatcher) {
+        val vm = criar()
+        vm.registrarCompra(BigDecimal("120.00"), 20)
+        advanceUntilIdle()
+
+        assertEquals(instante(agora.withSecond(0)), repositorio.registros.value.single().dataHora)
+    }
+
+    @Test
+    fun `logo apos registrar a compra ja da para vender`() = runTest(dispatcher) {
+        val vm = criar()
+        vm.registrarCompra(BigDecimal("120.00"), 20)
+        advanceUntilIdle()
+
+        vm.abrirNovaVenda("10")
+        assertEquals(20, vm.estado.value.formulario?.disponivel)
+        vm.aoSelecionarQuantidade(5)
+        vm.salvar()
+        advanceUntilIdle()
+
+        assertEquals(5, vendas().single().quantidadeFotos)
     }
 
     // --- Nova venda ---
