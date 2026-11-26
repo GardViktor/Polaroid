@@ -116,6 +116,8 @@ fun RelatoriosTela(viewModel: RegistrosViewModel = viewModel(factory = FabricaRe
                 )
             }
 
+            item { PizzaRelatorio(estado.fatiasPizza) }
+
             estado.painel?.let { painel ->
                 item { CartoesPainel(painel, estado.configuracao.limiteEstoqueBaixo) }
             }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +45,7 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
+import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
@@ -115,7 +117,14 @@ fun GraficoRelatorio(
         ),
         rememberLineCartesianLayer(
             lineProvider = LineCartesianLayer.LineProvider.series(
-                LineCartesianLayer.rememberLine(fill = LineCartesianLayer.LineFill.single(Fill(corLinha))),
+                LineCartesianLayer.rememberLine(
+                    fill = LineCartesianLayer.LineFill.single(Fill(corLinha)),
+                    // Curva suave (sem picos inventados) + um ponto em cada barra que teve venda
+                    interpolator = LineCartesianLayer.Interpolator.cubic(),
+                    pointProvider = LineCartesianLayer.PointProvider.single(
+                        LineCartesianLayer.Point(rememberShapeComponent(fill = Fill(corLinha), shape = CircleShape), 7.dp),
+                    ),
+                ),
             ),
             verticalAxisPosition = Axis.Position.Vertical.End,
         ),

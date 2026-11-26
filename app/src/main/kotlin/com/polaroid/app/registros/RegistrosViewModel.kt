@@ -46,6 +46,7 @@ data class EstadoRegistros(
     val configuracao: ConfiguracaoTaxas = ConfiguracaoTaxas.PADRAO,
     val metricaGrafico: MetricaGrafico = MetricaGrafico.FOTOS,
     val pontosGrafico: List<PontoGrafico> = emptyList(),
+    val fatiasPizza: List<FatiaPizza> = emptyList(),
 )
 
 data class DadosPainel(
@@ -132,6 +133,7 @@ class RegistrosViewModel(
 
         return estado.copy(
             pontosGrafico = Grafico.montar(registros, periodo, zona),
+            fatiasPizza = Distribuicao.calcular(registros, periodo, zona),
             podeAvancarPeriodo = !periodo.proximo().eFuturo(hoje()),
             registrosDoPeriodo = registros.filter { periodo.contem(it.dataHora.atZone(zona).toLocalDate()) },
             painel = DadosPainel(
