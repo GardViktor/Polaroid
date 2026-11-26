@@ -23,14 +23,14 @@ data class Oferta(
     val fotos: Int?,
     val precoPorFoto: BigDecimal?,
 ) {
-    /** Preço + frete (frete desconhecido conta como zero, e a tela avisa "frete não incluso"). */
-    val totalCentavos: Long get() = precoCentavos + (freteCentavos ?: 0)
+    /** Só informativo (selo na tela); o frete NÃO entra no ranking. */
     val freteGratis: Boolean get() = freteCentavos == 0L
 }
 
 /**
- * Filtra os anúncios compatíveis com a Instax Mini 12 e ordena pelo preço por foto,
- * do mais barato ao mais caro. Ofertas sem quantidade identificada vão para o fim.
+ * Filtra os anúncios compatíveis com a Instax Mini 12 e ordena pelo preço por foto
+ * (preço ÷ fotos, SEM frete, para comparar todas as lojas igual), do mais barato ao mais
+ * caro. Empate: menor preço primeiro. Ofertas sem quantidade identificada vão para o fim.
  */
 object Ranking {
 
@@ -42,13 +42,12 @@ object Ranking {
             .distinctBy { it.link }
             .map(::paraOferta)
             .sortedWith(
-                compareBy<Oferta, BigDecimal?>(nullsLast()) { it.precoPorFoto }.thenBy { it.totalCentavos },
+                compareBy<Oferta, BigDecimal?>(nullsLast()) { it.precoPorFoto }.thenBy { it.precoCentavos },
             )
             .toList()
 
     private fun paraOferta(anuncio: AnuncioBruto): Oferta {
         val fotos = ExtratorFotos.quantidade(anuncio.titulo)?.takeIf { it > 0 }
-        val total = anuncio.precoCentavos + (anuncio.freteCentavos ?: 0)
         return Oferta(
             loja = anuncio.loja,
             titulo = anuncio.titulo.trim().replace(Regex("\\s+"), " "),
@@ -56,7 +55,9 @@ object Ranking {
             freteCentavos = anuncio.freteCentavos,
             link = anuncio.link,
             fotos = fotos,
-            precoPorFoto = fotos?.let { BigDecimal.valueOf(total, 2).divide(BigDecimal(it), MathContext.DECIMAL128) },
+            precoPorFoto = fotos?.let {
+                BigDecimal.valueOf(anuncio.precoCentavos, 2).divide(BigDecimal(it), MathContext.DECIMAL128)
+            },
         )
     }
 }
