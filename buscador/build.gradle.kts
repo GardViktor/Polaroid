@@ -15,6 +15,10 @@ kotlin {
 }
 
 dependencies {
+    // Leitura das respostas das lojas: JSON (VTEX, Shopify) e HTML (demais)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
+    implementation("org.jsoup:jsoup:1.24.1")
+
     testImplementation(kotlin("test"))
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
