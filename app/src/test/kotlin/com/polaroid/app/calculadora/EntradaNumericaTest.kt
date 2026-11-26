@@ -66,23 +66,4 @@ class EntradaNumericaTest {
         assertNull(EntradaNumerica.converterValor(","))
         assertNull(EntradaNumerica.converterValor("."))
     }
-
-    // --- Quantidade de fotos ---
-
-    @Test
-    fun `quantidade aceita so digitos ate 5 casas`() {
-        listOf("", "1", "20", "99999").forEach {
-            assertTrue(EntradaNumerica.aceitaQuantidade(it), "deveria aceitar '$it'")
-        }
-        listOf("1,5", "1.5", "-1", "abc", "100000").forEach {
-            assertFalse(EntradaNumerica.aceitaQuantidade(it), "deveria bloquear '$it'")
-        }
-    }
-
-    @Test
-    fun `converte quantidade`() {
-        assertEquals(20, EntradaNumerica.converterQuantidade("20"))
-        assertEquals(0, EntradaNumerica.converterQuantidade("0"))
-        assertNull(EntradaNumerica.converterQuantidade(""))
-    }
 }

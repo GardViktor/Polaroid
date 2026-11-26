@@ -7,7 +7,6 @@ object EntradaNumerica {
 
     // Até 9 dígitos inteiros, um separador (vírgula ou ponto) e até 2 casas decimais
     private val FORMATO_VALOR = Regex("""^\d{0,9}([.,]\d{0,2})?$""")
-    private val FORMATO_QUANTIDADE = Regex("""^\d{0,5}$""")
 
     /** true se o texto pode ficar no campo de valor (inclui valores parciais como "120,"). */
     fun aceitaValor(texto: String): Boolean = FORMATO_VALOR.matches(texto)
@@ -19,11 +18,4 @@ object EntradaNumerica {
         if (normalizado.isEmpty()) return null
         return BigDecimal(if (normalizado.startsWith(".")) "0$normalizado" else normalizado)
     }
-
-    /** true se o texto pode ficar no campo de quantidade. */
-    fun aceitaQuantidade(texto: String): Boolean = FORMATO_QUANTIDADE.matches(texto)
-
-    /** Converte a quantidade; null se vazio. */
-    fun converterQuantidade(texto: String): Int? =
-        if (aceitaQuantidade(texto)) texto.toIntOrNull() else null
 }
