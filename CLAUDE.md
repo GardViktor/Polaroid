@@ -15,6 +15,7 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
 - **Álbum** (implementado): câmera dentro do app (CameraX), foto salva na **galeria** em `Pictures/Polaroid` com data, hora e local **aproximado**; grade 3 colunas (Coil para miniaturas), foto aberta com data/hora/local e opção de apagar com confirmação.
   - Data/hora e coordenadas ficam **dentro da foto (EXIF)**; o nome do lugar ("Bairro, Cidade", via Geocoder, precisa de internet) é só cache em SharedPreferences e é redescoberto ao abrir a foto se faltar.
   - Localização começa a ser buscada ao abrir a câmera e nunca trava a foto (limite 5 s → salva sem local). Localização negada não impede a foto.
+  - Consulta **fused (Android 12+), rede e GPS ao mesmo tempo** e usa a primeira resposta (`primeiraLocalizacao`). Usar só o provedor de rede falhava em Samsung (One UI 8.5). Sem local, a foto guarda e mostra o motivo (`MotivoSemLocal`: sem permissão / localização desligada / não encontrado a tempo).
   - Interfaces `RepositorioFotos`, `ProvedorLocalizacao`, `ProvedorNomeLocal` isolam o Android para o `AlbumViewModel` ser testado com fakes.
   - Limitação conhecida: após reinstalar o app, fotos antigas continuam na galeria mas não aparecem no Álbum (Android só lista fotos criadas pela instalação atual sem permissão extra de leitura).
 - **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Calcular, Buscar e Álbum; sem biblioteca de navegação (estado salvo com `rememberSaveable`).
