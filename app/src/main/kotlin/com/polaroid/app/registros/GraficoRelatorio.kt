@@ -42,6 +42,7 @@ import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesi
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import java.text.DecimalFormat
@@ -49,6 +50,12 @@ import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 private val SIMBOLOS_BR = DecimalFormatSymbols(Locale.forLanguageTag("pt-BR"))
+
+/**
+ * Nomes das barras guardados JUNTO com os dados do gráfico (mesma transação), para nunca
+ * ficarem dessincronizados ao trocar de período (ex.: outubro com 31 barras → novembro com 30).
+ */
+private val CHAVE_ROTULOS = ExtraStore.Key<List<String>>()
 
 /** Valores dos eixos: inteiros para fotos, "R$ 1.234" para dinheiro (sem centavos, para caber). */
 private fun formatarEixo(valor: Double, emReais: Boolean): String {
@@ -84,12 +91,12 @@ fun GraficoRelatorio(
                     series(pontos.map { 0.0 })
                 }
             }
+            extras { it[CHAVE_ROTULOS] = pontos.map(PontoGrafico::rotulo) }
         }
     }
 
     val corBarra = MaterialTheme.colorScheme.primary
     val corLinha = if (temPreco) MaterialTheme.colorScheme.tertiary else Color.Transparent
-    val rotulos = pontos.map { it.rotulo }
     val espacoRotulos = when (tipoPeriodo) {
         TipoPeriodo.DIA -> 3
         TipoPeriodo.MES -> 5
@@ -128,8 +135,10 @@ fun GraficoRelatorio(
         },
         bottomAxis = HorizontalAxis.rememberBottom(
             label = textoEixo,
-            valueFormatter = remember(rotulos) {
-                CartesianValueFormatter { _, x, _ -> rotulos.getOrNull(x.toInt()).orEmpty() }
+            valueFormatter = remember {
+                CartesianValueFormatter { contexto, x, _ ->
+                    Grafico.rotuloDaBarra(contexto.model.extraStore.getOrNull(CHAVE_ROTULOS), x)
+                }
             },
             itemPlacer = remember(espacoRotulos) { HorizontalAxis.ItemPlacer.aligned(spacing = { espacoRotulos }) },
         ),

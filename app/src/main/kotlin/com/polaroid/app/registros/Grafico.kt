@@ -32,6 +32,12 @@ object Grafico {
     private val MESES = listOf("Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez")
     private val DIA_MES = DateTimeFormatter.ofPattern("dd/MM")
 
+    /** Nome da barra na posição [x]; nunca vazio (a Vico fecha o app com rótulo em branco). */
+    fun rotuloDaBarra(rotulos: List<String>?, x: Double): String {
+        val indice = x.toInt()
+        return rotulos?.getOrNull(indice)?.takeIf { it.isNotBlank() } ?: "${indice + 1}"
+    }
+
     private data class Faixa(val inicio: LocalDateTime, val fim: LocalDateTime, val rotulo: String)
 
     fun montar(registros: List<Registro>, periodo: Periodo, zona: ZoneId): List<PontoGrafico> {
