@@ -32,6 +32,8 @@ class RegistrosViewModelTest {
     private val agora = LocalDateTime.of(2026, 11, 26, 14, 32, 40)
     private val relogio = Clock.fixed(agora.atZone(fuso).toInstant(), fuso)
     private val repositorio = RepositorioFalso()
+    private val configuracao = RepositorioConfiguracaoMemoria()
+    private val hoje = agora.toLocalDate()
 
     private fun instante(dataHora: LocalDateTime) = dataHora.atZone(fuso).toInstant()
 
@@ -43,7 +45,129 @@ class RegistrosViewModelTest {
 
     private fun TestScope.criar(vararg registros: Registro): RegistrosViewModel {
         repositorio.registros.value = registros.toList()
-        return RegistrosViewModel(repositorio, relogio).also { advanceUntilIdle() }
+        return RegistrosViewModel(repositorio, relogio, configuracao).also { advanceUntilIdle() }
+    }
+
+    // --- Painel: período ---
+
+    @Test
+    fun `painel abre no mes atual`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+
+        assertEquals(Periodo.atual(TipoPeriodo.MES, hoje), vm.estado.value.periodo)
+    }
+
+    @Test
+    fun `navega para o periodo anterior e volta`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+
+        vm.aoPeriodoAnterior()
+        assertEquals(java.time.LocalDate.of(2026, 10, 1), vm.estado.value.periodo.inicio)
+
+        vm.aoProximoPeriodo()
+        assertEquals(java.time.LocalDate.of(2026, 11, 1), vm.estado.value.periodo.inicio)
+    }
+
+    @Test
+    fun `nao avanca para periodo futuro`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+
+        vm.aoProximoPeriodo()
+
+        assertEquals(Periodo.atual(TipoPeriodo.MES, hoje), vm.estado.value.periodo)
+        assertFalse(vm.estado.value.podeAvancarPeriodo)
+    }
+
+    @Test
+    fun `trocar o tipo volta para o periodo atual desse tipo`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+        vm.aoPeriodoAnterior()
+
+        vm.aoEscolherTipoPeriodo(TipoPeriodo.SEMANA)
+
+        assertEquals(Periodo.atual(TipoPeriodo.SEMANA, hoje), vm.estado.value.periodo)
+    }
+
+    @Test
+    fun `lista mostra so os registros do periodo`() = runTest(dispatcher) {
+        val outubro = Registro.Venda(2, instante(agora.minusMonths(1)), 1, 1000, FormaPagamento.PIX, 0)
+        val novembro = Registro.Venda(3, instante(agora.minusDays(1)), 1, 1000, FormaPagamento.PIX, 0)
+        val vm = criar(compraBase, outubro, novembro)
+
+        assertEquals(listOf<Registro>(novembro), vm.estado.value.registrosDoPeriodo)
+    }
+
+    // --- Painel: números ---
+
+    @Test
+    fun `resumo e comparacao com o periodo anterior`() = runTest(dispatcher) {
+        val vm = criar(
+            compraBase,
+            Registro.Venda(2, instante(agora.minusMonths(1)), 10, 1000, FormaPagamento.PIX, 0), // out: R$ 100
+            Registro.Venda(3, instante(agora.minusDays(1)), 15, 1000, FormaPagamento.PIX, 0), // nov: R$ 150
+        )
+
+        val painel = assertNotNull(vm.estado.value.painel)
+        assertEquals(15, painel.resumo.fotosVendidas)
+        assertEquals(0, BigDecimal("150").compareTo(painel.resumo.faturamento))
+        assertEquals(0, BigDecimal("50").compareTo(painel.variacaoFaturamento!!))
+        assertEquals(0, BigDecimal("50").compareTo(painel.variacaoFotosVendidas!!))
+    }
+
+    @Test
+    fun `saldo de caixa e estoque atuais`() = runTest(dispatcher) {
+        val vm = criar(
+            Registro.Compra(1, instante(agora.minusDays(5)), 20, 12000),
+            Registro.Venda(2, instante(agora.minusDays(1)), 5, 1000, FormaPagamento.PIX, 0),
+        )
+
+        val painel = assertNotNull(vm.estado.value.painel)
+        assertEquals(0, BigDecimal("-70").compareTo(painel.situacao.saldoCaixa))
+        assertEquals(15, painel.situacao.estoque)
+        assertFalse(painel.estoqueBaixo)
+    }
+
+    @Test
+    fun `avisa estoque baixo pelo limite configurado`() = runTest(dispatcher) {
+        val vm = criar(
+            Registro.Compra(1, instante(agora.minusDays(5)), 20, 12000),
+            Registro.Venda(2, instante(agora.minusDays(1)), 10, 1000, FormaPagamento.PIX, 0),
+        )
+        assertTrue(assertNotNull(vm.estado.value.painel).estoqueBaixo) // 10 <= limite padrão 10
+
+        vm.salvarConfiguracao(ConfiguracaoTaxas(limiteEstoqueBaixo = 5))
+        advanceUntilIdle()
+
+        assertFalse(assertNotNull(vm.estado.value.painel).estoqueBaixo)
+    }
+
+    // --- Taxas configuráveis ---
+
+    @Test
+    fun `nova venda usa a taxa configurada`() = runTest(dispatcher) {
+        val vm = criar(compraBase)
+        vm.salvarConfiguracao(ConfiguracaoTaxas(pontosBase = mapOf(FormaPagamento.CREDITO to 350)))
+        advanceUntilIdle()
+
+        vm.abrirNovaVenda("10")
+        vm.aoSomarQuantidade(1)
+        vm.aoMudarFormaPagamento(FormaPagamento.CREDITO)
+        vm.salvar()
+        advanceUntilIdle()
+
+        assertEquals(350, vendas().single().taxaPontosBase)
+        assertEquals(350, vm.estado.value.configuracao.taxa(FormaPagamento.CREDITO))
+    }
+
+    @Test
+    fun `mudar a taxa nao altera vendas antigas`() = runTest(dispatcher) {
+        val antiga = Registro.Venda(2, instante(agora.minusDays(1)), 1, 1000, FormaPagamento.CREDITO, 499)
+        val vm = criar(compraBase, antiga)
+
+        vm.salvarConfiguracao(ConfiguracaoTaxas(pontosBase = mapOf(FormaPagamento.CREDITO to 350)))
+        advanceUntilIdle()
+
+        assertEquals(499, vendas().single().taxaPontosBase)
     }
 
     @BeforeTest
