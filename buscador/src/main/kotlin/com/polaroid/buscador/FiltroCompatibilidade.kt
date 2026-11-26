@@ -17,9 +17,14 @@ internal fun normalizar(texto: String): String =
  */
 object FiltroCompatibilidade {
 
+    // "para câmera(s) e impressora(s)" descreve compatibilidade, não o produto: removido antes de checar
+    private val PARA_APARELHO = Regex(
+        "\\bpara (as |os |a |o )?(camera|cameras|impressora|impressoras)( e (as |os )?(camera|cameras|impressora|impressoras))?\\b",
+    )
+
     // Aparelhos e acessórios que aparecem nas buscas junto com os filmes
     private val NAO_E_FILME = Regex(
-        "\\b(camera|cameras|impressora|printer|bolsa|case|capa|album|porta retrato|porta retratos|" +
+        "\\b(camera|cameras|impressora|impressoras|printer|bolsa|case|capa|album|porta retrato|porta retratos|" +
             "link|evo|lente|lentes|tripe|projetor|brinquedo|lego|miniatura|figura|adesivo|adesivos)\\b",
     )
 
@@ -32,7 +37,7 @@ object FiltroCompatibilidade {
 
     /** [categoriaGarantida]: o anúncio veio de uma categoria da loja que só tem filme Instax Mini. */
     fun compativel(titulo: String, categoriaGarantida: Boolean = false): Boolean {
-        val t = normalizar(titulo)
+        val t = normalizar(titulo).replace(PARA_APARELHO, " ")
         if (NAO_E_FILME.containsMatchIn(t) || OUTRO_FORMATO.containsMatchIn(t)) return false
         if (!MINI.containsMatchIn(t) || !E_FILME.containsMatchIn(t)) return false
         return categoriaGarantida || INSTAX.containsMatchIn(t)
@@ -52,9 +57,23 @@ object ExtratorFotos {
     // "20 fotos", "100 poses", "60 folhas"
     private val NUMERO_COM_UNIDADE = Regex("\\b(\\d{1,3}) $UNIDADE\\b")
     private val DUPLO = Regex("\\b(twin pack|pacote duplo|pack duplo|duplo)\\b")
+    // "2 cartuchos de 10 poses", "3 pacotes de 10 fotos": a composição já diz o total
+    private val PACOTES_DE = Regex("\\b(\\d{1,2}) (cartuchos?|pacotes?|packs?) de (\\d{1,3}) $UNIDADE\\b")
 
     fun quantidade(titulo: String): Int? {
-        val t = normalizar(titulo)
+        // "+" separando pacotes vira " mais " (a normalização apagaria o sinal)
+        val t = normalizar(titulo.replace("+", " mais "))
+
+        PACOTES_DE.find(t)?.let { m ->
+            val porPacote = m.groupValues[3].toInt()
+            if (porPacote in FOTOS_POR_PACOTE) return m.groupValues[1].toInt() * porPacote
+        }
+
+        // "20 Fotos + 10 Fotos": soma os pacotes juntados no mesmo anúncio
+        if (" mais " in " $t ") {
+            val partes = NUMERO_COM_UNIDADE.findAll(t).filter { it.groupValues[2] != "filmes" }.toList()
+            if (partes.size >= 2) return partes.sumOf { it.groupValues[1].toInt() }
+        }
 
         MULTIPLICACAO.find(t)?.let { m ->
             val pacotes = m.groupValues[1].toInt()
