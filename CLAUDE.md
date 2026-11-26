@@ -11,7 +11,8 @@ Polaroid é um aplicativo Android que centraliza promoções de filmes para a c�
   - Custo por foto e **preço mínimo sem prejuízo** (arredondado para cima) aparecem antes do preço de venda; preço abaixo do mínimo gera aviso mas ainda calcula (prejuízo em vermelho).
   - Saídas com preço: lucro por foto, lucro total e margem de lucro (sobre o preço de venda).
   - Calcula enquanto digita; caracteres inválidos são bloqueados na hora; erros só aparecem ao sair do campo; "≈" quando houve arredondamento; prejuízo em vermelho.
-- **Agregador de promoções** (futuro): reúne ofertas de filmes compatíveis com a Instax Mini 12.
+- **Buscar filmes** (aba criada, conteúdo "em breve"): ranking de ofertas de filme Instax Mini pelo **preço por foto** ((preço + frete) ÷ fotos), do mais barato ao mais caro. Sem burlar bloqueios de sites: só fontes oficiais (API do Mercado Livre, redes de afiliados). Início direto do app; objetivo futuro é mover a busca para o `backend/` hospedado (cache + chaves protegidas).
+- **Menu**: barra inferior (`navegacao/Destino` + `AppPrincipal`) com as abas Calcular e Buscar; sem biblioteca de navegação (estado salvo com `rememberSaveable`).
 
 ## Tech Stack
 
