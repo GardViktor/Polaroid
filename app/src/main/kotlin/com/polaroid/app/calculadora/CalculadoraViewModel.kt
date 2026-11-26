@@ -2,37 +2,57 @@ package com.polaroid.app.calculadora
 
 import androidx.lifecycle.ViewModel
 import com.polaroid.calculadora.CalculadoraLucro
+import com.polaroid.calculadora.ResultadoCusto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.math.BigDecimal
 
-enum class Campo { VALOR_PAGO, QUANTIDADE, PRECO_VENDA }
+enum class Campo { VALOR_PAGO, PRECO_VENDA }
 
-/** Resultado já formatado para exibição. */
-data class ResultadoTela(
+/** Custo formatado, disponível assim que valor pago e pack são informados. */
+data class CustoTela(
     val custoPorFoto: String,
+    val precoMinimo: String,
+    val custoAproximado: Boolean,
+)
+
+/** Lucro formatado, disponível quando o preço de venda também é informado. */
+data class ResultadoTela(
     val lucroPorFoto: String,
     val lucroTotal: String,
     val margem: String,
-    val valoresPorFotoAproximados: Boolean,
+    val lucroPorFotoAproximado: Boolean,
     val margemAproximada: Boolean,
     val prejuizo: Boolean,
 )
 
 data class EstadoCalculadora(
     val valorPago: String = "",
-    val quantidade: String = "",
+    val tamanhoPack: Int? = null,
+    val quantidadePacks: Int = 1,
     val precoVenda: String = "",
     val erros: Map<Campo, String> = emptyMap(),
+    val custo: CustoTela? = null,
     val resultado: ResultadoTela? = null,
-)
+    val avisoPreco: String? = null,
+) {
+    val totalFotos: Int? get() = tamanhoPack?.let { it * quantidadePacks }
+}
 
 /**
- * Calcula enquanto o usuário digita. Caracteres inválidos são ignorados na hora;
- * mensagens de erro só aparecem depois que o usuário sai do campo pela primeira vez.
+ * Calcula enquanto o usuário digita. O custo aparece assim que valor pago e pack
+ * são informados; o lucro, quando o preço de venda também é. Caracteres inválidos
+ * são ignorados na hora; erros só aparecem depois que o usuário sai do campo.
  */
 class CalculadoraViewModel : ViewModel() {
+
+    companion object {
+        /** Tamanhos de pack de filme Instax Mini vendidos no mercado brasileiro. */
+        val TAMANHOS_PACK: List<Int> = listOf(10, 20, 40, 50, 60, 100)
+        private const val MINIMO_PACKS = 1
+        private const val MAXIMO_PACKS = 99
+    }
 
     private val _estado = MutableStateFlow(EstadoCalculadora())
     val estado: StateFlow<EstadoCalculadora> = _estado.asStateFlow()
@@ -40,55 +60,89 @@ class CalculadoraViewModel : ViewModel() {
     private val camposVisitados = mutableSetOf<Campo>()
 
     fun aoDigitar(campo: Campo, texto: String) {
-        val aceito = when (campo) {
-            Campo.QUANTIDADE -> EntradaNumerica.aceitaQuantidade(texto)
-            else -> EntradaNumerica.aceitaValor(texto)
+        if (!EntradaNumerica.aceitaValor(texto)) return
+        atualizar {
+            when (campo) {
+                Campo.VALOR_PAGO -> it.copy(valorPago = texto)
+                Campo.PRECO_VENDA -> it.copy(precoVenda = texto)
+            }
         }
-        if (!aceito) return
-
-        val atual = _estado.value
-        val atualizado = when (campo) {
-            Campo.VALOR_PAGO -> atual.copy(valorPago = texto)
-            Campo.QUANTIDADE -> atual.copy(quantidade = texto)
-            Campo.PRECO_VENDA -> atual.copy(precoVenda = texto)
-        }
-        _estado.value = recalcular(atualizado)
     }
 
     fun aoSairDoCampo(campo: Campo) {
         camposVisitados += campo
-        _estado.value = recalcular(_estado.value)
+        atualizar { it }
+    }
+
+    fun aoSelecionarPack(tamanho: Int) {
+        if (tamanho !in TAMANHOS_PACK) return
+        atualizar { it.copy(tamanhoPack = tamanho) }
+    }
+
+    fun aoAumentarPacks() = atualizar {
+        it.copy(quantidadePacks = (it.quantidadePacks + 1).coerceAtMost(MAXIMO_PACKS))
+    }
+
+    fun aoDiminuirPacks() = atualizar {
+        it.copy(quantidadePacks = (it.quantidadePacks - 1).coerceAtLeast(MINIMO_PACKS))
+    }
+
+    private fun atualizar(mudanca: (EstadoCalculadora) -> EstadoCalculadora) {
+        _estado.value = recalcular(mudanca(_estado.value))
     }
 
     private fun recalcular(estado: EstadoCalculadora): EstadoCalculadora {
         val valorPago = validarValorPago(estado.valorPago)
-        val quantidade = validarQuantidade(estado.quantidade)
         val precoVenda = validarPrecoVenda(estado.precoVenda)
+        val totalFotos = estado.totalFotos
 
         val erros = mapOf(
             Campo.VALOR_PAGO to valorPago.erro,
-            Campo.QUANTIDADE to quantidade.erro,
             Campo.PRECO_VENDA to precoVenda.erro,
         ).filter { (campo, erro) -> erro != null && campo in camposVisitados }
             .mapValues { it.value!! }
 
-        val resultado = if (valorPago.valor != null && quantidade.valor != null && precoVenda.valor != null) {
-            calcularResultado(valorPago.valor, quantidade.valor, precoVenda.valor)
+        val custo = if (valorPago.valor != null && totalFotos != null) {
+            CalculadoraLucro.calcularCusto(valorPago.valor, totalFotos)
         } else {
             null
         }
 
-        return estado.copy(erros = erros, resultado = resultado)
+        val resultado = if (custo != null && precoVenda.valor != null) {
+            calcularResultado(valorPago.valor!!, totalFotos!!, precoVenda.valor)
+        } else {
+            null
+        }
+
+        val avisoPreco = if (custo != null && precoVenda.valor != null &&
+            precoVenda.valor < custo.precoMinimoSemPrejuizo
+        ) {
+            "Abaixo do preço mínimo (${Formatador.moeda(custo.precoMinimoSemPrejuizo)})"
+        } else {
+            null
+        }
+
+        return estado.copy(
+            erros = erros,
+            custo = custo?.let(::formatarCusto),
+            resultado = resultado,
+            avisoPreco = avisoPreco,
+        )
     }
 
-    private fun calcularResultado(valorPago: BigDecimal, quantidade: Int, precoVenda: BigDecimal): ResultadoTela {
-        val calculo = CalculadoraLucro.calcular(valorPago, quantidade, precoVenda)
+    private fun formatarCusto(custo: ResultadoCusto) = CustoTela(
+        custoPorFoto = Formatador.moeda(custo.custoPorFoto),
+        precoMinimo = Formatador.moeda(custo.precoMinimoSemPrejuizo),
+        custoAproximado = custo.custoPorFotoArredondado,
+    )
+
+    private fun calcularResultado(valorPago: BigDecimal, totalFotos: Int, precoVenda: BigDecimal): ResultadoTela {
+        val calculo = CalculadoraLucro.calcular(valorPago, totalFotos, precoVenda)
         return ResultadoTela(
-            custoPorFoto = Formatador.moeda(calculo.custoPorFoto),
             lucroPorFoto = Formatador.moeda(calculo.lucroPorFoto),
             lucroTotal = Formatador.moeda(calculo.lucroTotal),
             margem = Formatador.percentual(calculo.margemLucro),
-            valoresPorFotoAproximados = calculo.valoresPorFotoArredondados,
+            lucroPorFotoAproximado = calculo.valoresPorFotoArredondados,
             margemAproximada = calculo.margemArredondada,
             prejuizo = calculo.lucroTotal.signum() < 0,
         )
@@ -101,13 +155,6 @@ class CalculadoraViewModel : ViewModel() {
         if (texto.isEmpty()) return Validacao(null, "Informe o valor pago")
         val valor = EntradaNumerica.converterValor(texto) ?: return Validacao(null, "Valor inválido")
         return Validacao(valor, null)
-    }
-
-    private fun validarQuantidade(texto: String): Validacao<Int> {
-        if (texto.isEmpty()) return Validacao(null, "Informe a quantidade de fotos")
-        val quantidade = EntradaNumerica.converterQuantidade(texto) ?: return Validacao(null, "Quantidade inválida")
-        if (quantidade <= 0) return Validacao(null, "A quantidade deve ser maior que zero")
-        return Validacao(quantidade, null)
     }
 
     private fun validarPrecoVenda(texto: String): Validacao<BigDecimal> {

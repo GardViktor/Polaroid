@@ -2,15 +2,19 @@ package com.polaroid.app.calculadora
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -20,18 +24,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+
+private const val APROXIMADO = "≈ "
+private const val MAXIMO_PACKS = 99
 
 @Composable
 fun CalculadoraTela(viewModel: CalculadoraViewModel = viewModel()) {
@@ -49,27 +59,33 @@ fun CalculadoraTela(viewModel: CalculadoraViewModel = viewModel()) {
         ) {
             Text("Calculadora de Lucro", style = MaterialTheme.typography.headlineSmall)
 
-            CampoNumerico(
+            CampoValor(
                 rotulo = "Valor pago (filmes + frete)",
                 texto = estado.valorPago,
                 erro = estado.erros[Campo.VALOR_PAGO],
-                monetario = true,
                 aoDigitar = { viewModel.aoDigitar(Campo.VALOR_PAGO, it) },
                 aoSair = { viewModel.aoSairDoCampo(Campo.VALOR_PAGO) },
             )
-            CampoNumerico(
-                rotulo = "Quantidade de fotos",
-                texto = estado.quantidade,
-                erro = estado.erros[Campo.QUANTIDADE],
-                monetario = false,
-                aoDigitar = { viewModel.aoDigitar(Campo.QUANTIDADE, it) },
-                aoSair = { viewModel.aoSairDoCampo(Campo.QUANTIDADE) },
+
+            SeletorPack(
+                selecionado = estado.tamanhoPack,
+                aoSelecionar = viewModel::aoSelecionarPack,
             )
-            CampoNumerico(
+
+            ContadorPacks(
+                quantidade = estado.quantidadePacks,
+                totalFotos = estado.totalFotos,
+                aoAumentar = viewModel::aoAumentarPacks,
+                aoDiminuir = viewModel::aoDiminuirPacks,
+            )
+
+            estado.custo?.let { CartaoCusto(it) }
+
+            CampoValor(
                 rotulo = "Preço de venda por foto",
                 texto = estado.precoVenda,
                 erro = estado.erros[Campo.PRECO_VENDA],
-                monetario = true,
+                aviso = estado.avisoPreco,
                 ultimo = true,
                 aoDigitar = { viewModel.aoDigitar(Campo.PRECO_VENDA, it) },
                 aoSair = { viewModel.aoSairDoCampo(Campo.PRECO_VENDA) },
@@ -81,28 +97,29 @@ fun CalculadoraTela(viewModel: CalculadoraViewModel = viewModel()) {
 }
 
 @Composable
-private fun CampoNumerico(
+private fun CampoValor(
     rotulo: String,
     texto: String,
     erro: String?,
-    monetario: Boolean,
     aoDigitar: (String) -> Unit,
     aoSair: () -> Unit,
+    aviso: String? = null,
     ultimo: Boolean = false,
 ) {
     // onFocusChanged dispara "sem foco" ao montar; só conta saída depois de ter tido foco
     var teveFoco by remember { mutableStateOf(false) }
+    val mensagem = erro ?: aviso
 
     OutlinedTextField(
         value = texto,
         onValueChange = aoDigitar,
         label = { Text(rotulo) },
-        prefix = if (monetario) ({ Text("R$ ") }) else null,
-        isError = erro != null,
-        supportingText = erro?.let { { Text(it) } },
+        prefix = { Text("R$ ") },
+        isError = mensagem != null,
+        supportingText = mensagem?.let { { Text(it) } },
         singleLine = true,
         keyboardOptions = KeyboardOptions(
-            keyboardType = if (monetario) KeyboardType.Decimal else KeyboardType.Number,
+            keyboardType = KeyboardType.Decimal,
             imeAction = if (ultimo) ImeAction.Done else ImeAction.Next,
         ),
         modifier = Modifier
@@ -118,11 +135,86 @@ private fun CampoNumerico(
 }
 
 @Composable
+private fun SeletorPack(selecionado: Int?, aoSelecionar: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Tamanho do pack (fotos)", style = MaterialTheme.typography.labelLarge)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CalculadoraViewModel.TAMANHOS_PACK.forEach { tamanho ->
+                FilterChip(
+                    selected = tamanho == selecionado,
+                    onClick = { aoSelecionar(tamanho) },
+                    label = { Text("$tamanho") },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContadorPacks(
+    quantidade: Int,
+    totalFotos: Int?,
+    aoAumentar: () -> Unit,
+    aoDiminuir: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Quantidade de packs", modifier = Modifier.weight(1f))
+        FilledTonalButton(
+            onClick = aoDiminuir,
+            enabled = quantidade > 1,
+            modifier = Modifier.semantics { contentDescription = "Diminuir packs" },
+        ) { Text("−") }
+        Text(
+            "$quantidade",
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(min = 32.dp),
+        )
+        FilledTonalButton(
+            onClick = aoAumentar,
+            enabled = quantidade < MAXIMO_PACKS,
+            modifier = Modifier.semantics { contentDescription = "Aumentar packs" },
+        ) { Text("+") }
+    }
+    if (totalFotos != null) {
+        Text(
+            "Total: $totalFotos fotos",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun CartaoCusto(custo: CustoTela) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            LinhaResultado(
+                "Custo por foto",
+                (if (custo.custoAproximado) APROXIMADO else "") + custo.custoPorFoto,
+            )
+            LinhaResultado("Preço mínimo sem prejuízo", custo.precoMinimo, destaque = true)
+            if (custo.custoAproximado) {
+                NotaArredondamento()
+            }
+        }
+    }
+}
+
+@Composable
 private fun CartaoResultado(resultado: ResultadoTela) {
     val corLucro = if (resultado.prejuizo) MaterialTheme.colorScheme.error else Color.Unspecified
-    val aproximado = "≈ "
-    val prefixoPorFoto = if (resultado.valoresPorFotoAproximados) aproximado else ""
-    val prefixoMargem = if (resultado.margemAproximada) aproximado else ""
 
     Card(
         modifier = Modifier
@@ -133,11 +225,17 @@ private fun CartaoResultado(resultado: ResultadoTela) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LinhaResultado("Custo por foto", prefixoPorFoto + resultado.custoPorFoto)
-            LinhaResultado("Lucro por foto", prefixoPorFoto + resultado.lucroPorFoto, corLucro)
+            LinhaResultado(
+                "Lucro por foto",
+                (if (resultado.lucroPorFotoAproximado) APROXIMADO else "") + resultado.lucroPorFoto,
+                corLucro,
+            )
             LinhaResultado("Lucro total", resultado.lucroTotal, corLucro, destaque = true)
-            LinhaResultado("Margem de lucro", prefixoMargem + resultado.margem, corLucro)
-
+            LinhaResultado(
+                "Margem de lucro",
+                (if (resultado.margemAproximada) APROXIMADO else "") + resultado.margem,
+                corLucro,
+            )
             if (resultado.prejuizo) {
                 Text(
                     "Prejuízo: o preço de venda está abaixo do custo",
@@ -145,15 +243,20 @@ private fun CartaoResultado(resultado: ResultadoTela) {
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            if (resultado.valoresPorFotoAproximados || resultado.margemAproximada) {
-                Text(
-                    "≈ valor arredondado",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (resultado.lucroPorFotoAproximado || resultado.margemAproximada) {
+                NotaArredondamento()
             }
         }
     }
+}
+
+@Composable
+private fun NotaArredondamento() {
+    Text(
+        "≈ valor arredondado",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
