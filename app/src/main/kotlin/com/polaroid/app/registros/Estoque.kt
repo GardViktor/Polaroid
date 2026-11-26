@@ -1,6 +1,7 @@
 package com.polaroid.app.registros
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 /** Momento em que o estoque ficaria negativo. */
 data class FaltaEstoque(val quando: Instant, val saldo: Int)
@@ -41,7 +42,8 @@ object Estoque {
      */
     fun disponivelEm(registros: List<Registro>, quando: Instant, ignorarId: Long? = null): Int {
         val considerados = emOrdem(registros.filterNot { ignorarId != null && it.id == ignorarId })
-        val (ateAgora, depois) = considerados.partition { !it.dataHora.isAfter(quando) }
+        val limite = noMinuto(quando)
+        val (ateAgora, depois) = considerados.partition { !noMinuto(it.dataHora).isAfter(limite) }
 
         var saldo = ateAgora.sumOf(::variacao)
         var menor = saldo
@@ -57,7 +59,12 @@ object Estoque {
         is Registro.Venda, is Registro.Perda -> -registro.quantidadeFotos
     }
 
-    // No mesmo instante, compras entram antes das saídas
+    // Comparação por minuto (as datas da tela não têm segundos); no mesmo minuto,
+    // compras entram antes das saídas
     private fun emOrdem(registros: List<Registro>) =
-        registros.sortedWith(compareBy<Registro> { it.dataHora }.thenBy { if (it is Registro.Compra) 0 else 1 })
+        registros.sortedWith(
+            compareBy<Registro> { noMinuto(it.dataHora) }.thenBy { if (it is Registro.Compra) 0 else 1 },
+        )
+
+    private fun noMinuto(instante: Instant): Instant = instante.truncatedTo(ChronoUnit.MINUTES)
 }

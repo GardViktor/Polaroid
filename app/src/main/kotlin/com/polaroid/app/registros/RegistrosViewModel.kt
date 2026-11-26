@@ -71,7 +71,9 @@ class RegistrosViewModel(
     }
 
     fun registrarCompra(valorPago: BigDecimal, quantidadeFotos: Int) {
-        val compra = Registro.Compra(0, relogio.instant(), quantidadeFotos, Centavos.de(valorPago))
+        // No minuto (sem segundos), igual às datas escolhidas na tela
+        val agora = agoraNoMinuto().atZone(relogio.zone).toInstant()
+        val compra = Registro.Compra(0, agora, quantidadeFotos, Centavos.de(valorPago))
         viewModelScope.launch {
             repositorio.salvar(compra)
             _estado.update { it.copy(mensagem = "Compra registrada") }
