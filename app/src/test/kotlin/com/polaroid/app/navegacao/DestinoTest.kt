@@ -6,8 +6,11 @@ import kotlin.test.assertEquals
 class DestinoTest {
 
     @Test
-    fun `menu tem calculadora, busca e album nessa ordem`() {
-        assertEquals(listOf(Destino.CALCULADORA, Destino.BUSCAR, Destino.ALBUM), Destino.entries)
+    fun `menu tem calculadora, busca, album e relatorios nessa ordem`() {
+        assertEquals(
+            listOf(Destino.CALCULADORA, Destino.BUSCAR, Destino.ALBUM, Destino.RELATORIOS),
+            Destino.entries,
+        )
     }
 
     @Test
@@ -20,5 +23,6 @@ class DestinoTest {
         assertEquals("Calcular", Destino.CALCULADORA.rotulo)
         assertEquals("Buscar", Destino.BUSCAR.rotulo)
         assertEquals("Álbum", Destino.ALBUM.rotulo)
+        assertEquals("Relatórios", Destino.RELATORIOS.rotulo)
     }
 }

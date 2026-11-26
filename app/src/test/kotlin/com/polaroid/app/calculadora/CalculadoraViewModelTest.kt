@@ -211,6 +211,29 @@ class CalculadoraViewModelTest {
         assertNotNull(estado.custo)
     }
 
+    // --- Dados para registrar a compra ---
+
+    @Test
+    fun `dados da compra com valor pago e total de fotos`() {
+        viewModel.aoDigitar(Campo.VALOR_PAGO, "120,50")
+        viewModel.aoSelecionarPack(20)
+        viewModel.aoAumentarPacks()
+
+        val compra = assertNotNull(viewModel.dadosCompra())
+        assertEquals(java.math.BigDecimal("120.50"), compra.valorPago)
+        assertEquals(40, compra.totalFotos)
+    }
+
+    @Test
+    fun `sem pack ou sem valor nao ha compra para registrar`() {
+        assertNull(viewModel.dadosCompra())
+        viewModel.aoDigitar(Campo.VALOR_PAGO, "120")
+        assertNull(viewModel.dadosCompra())
+        viewModel.aoDigitar(Campo.VALOR_PAGO, "")
+        viewModel.aoSelecionarPack(20)
+        assertNull(viewModel.dadosCompra())
+    }
+
     // --- Digitação e erros ---
 
     @Test
