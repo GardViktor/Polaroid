@@ -117,12 +117,20 @@ fun CalculadoraTela(
 
             estado.resultado?.let { CartaoResultado(it) }
 
-            // Registrar compra fica logo acima de Registrar venda (só aparece com valor pago + pack)
-            if (estado.custo != null) {
-                OutlinedButton(
-                    onClick = { confirmandoCompra = viewModel.dadosCompra() },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("🛒 Registrar compra") }
+            // Registrar compra fica sempre visível, logo acima de Registrar venda;
+            // desativado (com dica) até valor pago e pack estarem preenchidos
+            val podeRegistrarCompra = estado.custo != null
+            OutlinedButton(
+                onClick = { confirmandoCompra = viewModel.dadosCompra() },
+                enabled = podeRegistrarCompra,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("🛒 Registrar compra") }
+            if (!podeRegistrarCompra) {
+                Text(
+                    "Para registrar a compra, preencha o valor pago e escolha o pack.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             OutlinedButton(
