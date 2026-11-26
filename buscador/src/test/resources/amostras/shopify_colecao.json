@@ -1,0 +1,104 @@
+{
+  "products": [
+    {
+      "title": "Combo de Filmes Fujifilm instax™ mini Branco 100 Fotos",
+      "handle": "combo-de-filmes-fujifilm-instax™-mini-branco-100-fotos",
+      "variants": [
+        {
+          "price": "470.00",
+          "available": true
+        }
+      ]
+    },
+    {
+      "title": "100 fotos instax™ mini a sua escolha",
+      "handle": "100-filmes-instax™-mini-a-sua-escolha",
+      "variants": [
+        {
+          "price": "540.00",
+          "available": true
+        }
+      ]
+    },
+    {
+      "title": "Monte seu combo filmes instax™ Mini:",
+      "handle": "monte-seu-combo-instax-mini-30-fotos",
+      "variants": [
+        {
+          "price": "0.00",
+          "available": true
+        }
+      ]
+    },
+    {
+      "title": "Combo de Filmes Fujifilm instax™ mini Branco 40 Fotos",
+      "handle": "combo-de-filmes-fujifilm-instax-mini-branco-40-fotos",
+      "variants": [
+        {
+          "price": "206.90",
+          "available": true
+        }
+      ]
+    },
+    {
+      "title": "Combo de Filmes Fujifilm instax™ mini Mermaid Tail 30 Fotos",
+      "handle": "combo-de-filmes-fujifilm-instax-mini-mermaid-tail-30-fotos",
+      "variants": [
+        {
+          "price": "171.90",
+          "available": false
+        }
+      ]
+    },
+    {
+      "title": "Combo de Filmes Fujifilm instax™ mini Soft Lavender 30 Fotos",
+      "handle": "combo-de-filmes-fujifilm-instax-mini-soft-lavender-30-fotos-1",
+      "variants": [
+        {
+          "price": "171.90",
+          "available": true
+        }
+      ]
+    },
+    {
+      "title": "Combo de Filmes Fujifilm instax™ mini Spray Art 30 Fotos",
+      "handle": "combo-de-filmes-fujifilm-instax-spray-art-30-fotos",
+      "variants": [
+        {
+          "price": "171.90",
+          "available": false
+        }
+      ]
+    },
+    {
+      "title": "Combo de Filmes Fujifilm instax™ mini Black 30 Fotos",
+      "handle": "combo-de-filmes-fujifilm-instax-mini-black-30-fotos",
+      "variants": [
+        {
+          "price": "171.90",
+          "available": false
+        }
+      ]
+    },
+    {
+      "title": "Combo de Filmes Fujifilm instax™ mini Photo Slide 30 Fotos",
+      "handle": "combo-de-filmes-fujifilm-instax-mini-photo-slide-30-fotos-1",
+      "variants": [
+        {
+          "price": "171.90",
+          "available": true
+        }
+      ]
+    },
+    {
+      "title": "Combo de Filmes Fujifilm instax™ mini Pink Lemonade 30 Fotos",
+      "handle": "combo-de-filmes-fujifilm-instax-mini-pink-lemonade-30-fotos",
+      "variants": [
+        {
+          "price": "171.90",
+          "available": false
+        }
+      ]
+    }
+  ]
+}

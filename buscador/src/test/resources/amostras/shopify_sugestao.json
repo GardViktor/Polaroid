@@ -1,0 +1,68 @@
+{
+  "resources": {
+    "results": {
+      "products": [
+        {
+          "title": "Filme instantâneo Instax Mini Fujifilm 20 fotos",
+          "url": "/products/filme-instantaneo-instax-mini-fujifilm-20-fotos?_pos=1&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "115.00",
+          "available": true
+        },
+        {
+          "title": "Filme Instantâneo Fujifilm Instax Mini Rainbow 10 Fotos",
+          "url": "/products/filme-instantaneo-instax-mini-fujifilm-20-fotos-1?_pos=2&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "86.35",
+          "available": true
+        },
+        {
+          "title": "Filme instantâneo Fujifilm Instax Mini Contact Sheet 10 fotos",
+          "url": "/products/filme-instantaneo-instax-mini-fujifilm-black-10-fotos?_pos=3&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "79.04",
+          "available": true
+        },
+        {
+          "title": "Filme Instax Mini Spray Art - 10 Fotos",
+          "url": "/products/filme-instantaneo-instax-mini-fujifilm-spray-art-10-fotos?_pos=4&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "65.00",
+          "available": true
+        },
+        {
+          "title": "Filme Instantâneo Fujifilm Instax Mini Pink Lemonade 10 Fotos",
+          "url": "/products/filme-instantaneo-instax-mini-fujifilm-sprinkles-10-fotos-1?_pos=5&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "85.48",
+          "available": true
+        },
+        {
+          "title": "Kit Câmera Instax Mini Fujifilm 12 Verde com Bolsa + 10 Filmes",
+          "url": "/products/kit-camera-instax-mini-fujifilm-12-verde-com-bolsa-10-filmes?_pos=6&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "773.93",
+          "available": true
+        },
+        {
+          "title": "Câmera Instantânea Fujifilm Instax Mini 13 Rosa Analógica",
+          "url": "/products/camera-instantanea-fujifilm-instax-mini-13-branca?_pos=7&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "790.76",
+          "available": true
+        },
+        {
+          "title": "Câmera Instantânea Fujifilm Instax Mini 13 Verde Analógica",
+          "url": "/products/camera-instantanea-fujifilm-instax-mini-13-roxo?_pos=8&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "790.76",
+          "available": true
+        },
+        {
+          "title": "Câmera Instantânea Fujifilm Instax Mini 13 Roxa Analógica",
+          "url": "/products/camera-instantanea-fujifilm-instax-mini-13-rosa?_pos=9&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "790.76",
+          "available": true
+        },
+        {
+          "title": "Câmera Instantânea Fujifilm Instax Mini 13 Branca Analógica",
+          "url": "/products/camera-instantanea-instax-mini-12-fujifilm-verde-menta-1?_pos=10&_psq=filme+instax+mini&_psid=6ad0f6edd&_ss=e",
+          "price": "790.76",
+          "available": true
+        }
+      ]
+    }
+  }
+}
