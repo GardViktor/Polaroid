@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.polaroid.app.registros.banco.BancoPolaroid
+import com.polaroid.app.registros.banco.RepositorioConfiguracaoPrefs
 import com.polaroid.app.registros.banco.RepositorioRegistrosRoom
 import java.time.Clock
 
@@ -14,6 +15,7 @@ val FabricaRegistrosViewModel = viewModelFactory {
         RegistrosViewModel(
             repositorio = RepositorioRegistrosRoom(BancoPolaroid.obter(app).registros()),
             relogio = Clock.systemDefaultZone(),
+            repositorioConfiguracao = RepositorioConfiguracaoPrefs(app),
         )
     }
 }

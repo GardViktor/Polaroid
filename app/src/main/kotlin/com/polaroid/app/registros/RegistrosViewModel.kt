@@ -39,6 +39,21 @@ data class EstadoRegistros(
     val mensagem: String? = null,
     /** Dados antigos com mais saídas que entradas: mostrar aviso para revisar. */
     val estoqueNegativo: Boolean = false,
+    val periodo: Periodo = Periodo(TipoPeriodo.MES, java.time.LocalDate.MIN),
+    val podeAvancarPeriodo: Boolean = false,
+    val registrosDoPeriodo: List<Registro> = emptyList(),
+    val painel: DadosPainel? = null,
+    val configuracao: ConfiguracaoTaxas = ConfiguracaoTaxas.PADRAO,
+)
+
+data class DadosPainel(
+    val resumo: ResumoPeriodo,
+    val situacao: SituacaoGeral,
+    val estoqueBaixo: Boolean,
+    /** Variação % em relação ao período anterior; null sem base de comparação. */
+    val variacaoFaturamento: BigDecimal?,
+    val variacaoFotosVendidas: BigDecimal?,
+    val variacaoLucro: BigDecimal?,
 )
 
 /**
@@ -49,23 +64,80 @@ data class EstadoRegistros(
 class RegistrosViewModel(
     private val repositorio: RepositorioRegistros,
     private val relogio: Clock,
+    private val repositorioConfiguracao: RepositorioConfiguracao = RepositorioConfiguracaoMemoria(),
 ) : ViewModel() {
 
-    private val _estado = MutableStateFlow(EstadoRegistros())
+    private val _estado = MutableStateFlow(
+        comPainel(EstadoRegistros(periodo = Periodo.atual(TipoPeriodo.MES, hoje()))),
+    )
     val estado: StateFlow<EstadoRegistros> = _estado.asStateFlow()
 
     init {
         viewModelScope.launch {
             repositorio.observar().collect { registros ->
                 _estado.update {
-                    it.copy(
-                        registros = registros.sortedByDescending(Registro::dataHora),
-                        estoqueNegativo = Estoque.primeiraFalta(registros) != null,
-                        formulario = it.formulario?.let { f -> comDisponivel(f, registros) },
+                    comPainel(
+                        it.copy(
+                            registros = registros.sortedByDescending(Registro::dataHora),
+                            estoqueNegativo = Estoque.primeiraFalta(registros) != null,
+                            formulario = it.formulario?.let { f -> comDisponivel(f, registros) },
+                        ),
                     )
                 }
             }
         }
+        viewModelScope.launch {
+            repositorioConfiguracao.observar().collect { configuracao ->
+                _estado.update { comPainel(it.copy(configuracao = configuracao)) }
+            }
+        }
+    }
+
+    // --- Painel ---
+
+    fun aoPeriodoAnterior() = mudarPeriodo { it.anterior() }
+
+    /** Avança, mas nunca para um período que ainda não começou. */
+    fun aoProximoPeriodo() = mudarPeriodo { atual -> atual.proximo().takeUnless { it.eFuturo(hoje()) } ?: atual }
+
+    fun aoEscolherTipoPeriodo(tipo: TipoPeriodo) = mudarPeriodo { Periodo.atual(tipo, hoje()) }
+
+    fun salvarConfiguracao(configuracao: ConfiguracaoTaxas) {
+        viewModelScope.launch {
+            repositorioConfiguracao.salvar(configuracao)
+            _estado.update { it.copy(mensagem = "Configurações salvas") }
+        }
+    }
+
+    private fun mudarPeriodo(mudanca: (Periodo) -> Periodo) {
+        _estado.update { comPainel(it.copy(periodo = mudanca(it.periodo))) }
+    }
+
+    private fun hoje() = java.time.LocalDate.now(relogio)
+
+    /** Recalcula lista do período, resumo, comparação e situação geral. */
+    private fun comPainel(estado: EstadoRegistros): EstadoRegistros {
+        val zona = relogio.zone
+        val periodo = estado.periodo
+        val registros = estado.registros
+        val resumo = Painel.resumo(registros, periodo, zona)
+        val anterior = Painel.resumo(registros, periodo.anterior(), zona)
+        val situacao = Painel.situacaoGeral(registros)
+
+        return estado.copy(
+            podeAvancarPeriodo = !periodo.proximo().eFuturo(hoje()),
+            registrosDoPeriodo = registros.filter { periodo.contem(it.dataHora.atZone(zona).toLocalDate()) },
+            painel = DadosPainel(
+                resumo = resumo,
+                situacao = situacao,
+                estoqueBaixo = situacao.estoque <= estado.configuracao.limiteEstoqueBaixo,
+                variacaoFaturamento = Painel.variacaoPercentual(resumo.faturamento, anterior.faturamento),
+                variacaoFotosVendidas = Painel.variacaoPercentual(
+                    BigDecimal(resumo.fotosVendidas), BigDecimal(anterior.fotosVendidas),
+                ),
+                variacaoLucro = Painel.variacaoPercentual(resumo.lucro, anterior.lucro),
+            ),
+        )
     }
 
     fun registrarCompra(valorPago: BigDecimal, quantidadeFotos: Int) {
@@ -252,7 +324,7 @@ class RegistrosViewModel(
                 val taxa = formulario.taxaOriginal
                     ?.takeIf { (formaOriginal, _) -> formaOriginal == forma }
                     ?.second
-                    ?: forma.taxaPadraoPontosBase
+                    ?: _estado.value.configuracao.taxa(forma)
                 Registro.Venda(id, instante, quantidade, centavos(), forma, taxa)
             }
         }

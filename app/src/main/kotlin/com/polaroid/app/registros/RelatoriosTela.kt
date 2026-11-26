@@ -42,11 +42,12 @@ import java.time.format.DateTimeFormatter
 
 private val FORMATO_DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy  HH:mm")
 
-/** Etapa 1: lista de compras, vendas e perdas. Painel e gráficos entram nas próximas etapas. */
+/** Painel do período + lista de compras, vendas e perdas. Gráficos entram na etapa 3. */
 @Composable
 fun RelatoriosTela(viewModel: RegistrosViewModel = viewModel(factory = FabricaRegistrosViewModel)) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     var apagando by remember { mutableStateOf<Registro?>(null) }
+    var configurando by remember { mutableStateOf(false) }
     val avisos = remember { SnackbarHostState() }
 
     LaunchedEffect(estado.mensagem) {
@@ -65,53 +66,95 @@ fun RelatoriosTela(viewModel: RegistrosViewModel = viewModel(factory = FabricaRe
             }
         },
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(bottom = 160.dp), // espaço para os botões flutuantes
         ) {
-            Text("Relatórios", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(vertical = 16.dp))
-
-            if (estado.estoqueNegativo) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                ) {
-                    Text(
-                        "⚠ Estoque negativo: há mais fotos vendidas/perdidas do que compradas. " +
-                            "Revise os registros (edite ou apague) para a conta fechar.",
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(12.dp),
-                    )
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
+                    Text("Relatórios", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { configurando = true }) { Text("⚙ Configurações") }
                 }
             }
 
-            if (estado.registros.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "Nenhum registro ainda.\nRegistre compras pela Calculadora e vendas pelo botão \"+ Venda\".",
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 160.dp), // espaço para os botões flutuantes
-                ) {
-                    items(estado.registros, key = { it.id }) { registro ->
-                        ItemRegistro(
-                            registro = registro,
-                            aoEditar = { viewModel.abrirEdicao(registro) },
-                            aoApagar = { apagando = registro },
+            if (estado.estoqueNegativo) {
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            "⚠ Estoque negativo: há mais fotos vendidas/perdidas do que compradas. " +
+                                "Revise os registros (edite ou apague) para a conta fechar.",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(12.dp),
                         )
                     }
                 }
             }
+
+            item {
+                SeletorPeriodo(
+                    periodo = estado.periodo,
+                    podeAvancar = estado.podeAvancarPeriodo,
+                    aoEscolherTipo = viewModel::aoEscolherTipoPeriodo,
+                    aoAnterior = viewModel::aoPeriodoAnterior,
+                    aoProximo = viewModel::aoProximoPeriodo,
+                )
+            }
+
+            estado.painel?.let { painel ->
+                item { CartoesPainel(painel, estado.configuracao.limiteEstoqueBaixo) }
+            }
+
+            item {
+                Text(
+                    "Registros do período",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+
+            if (estado.registrosDoPeriodo.isEmpty()) {
+                item {
+                    Text(
+                        if (estado.registros.isEmpty()) {
+                            "Nenhum registro ainda.\nRegistre compras pela Calculadora e vendas pelo botão \"+ Venda\"."
+                        } else {
+                            "Nenhum registro neste período."
+                        },
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                    )
+                }
+            } else {
+                items(estado.registrosDoPeriodo, key = { it.id }) { registro ->
+                    ItemRegistro(
+                        registro = registro,
+                        aoEditar = { viewModel.abrirEdicao(registro) },
+                        aoApagar = { apagando = registro },
+                    )
+                }
+            }
         }
+    }
+
+    if (configurando) {
+        ConfiguracoesDialog(
+            atual = estado.configuracao,
+            aoSalvar = {
+                viewModel.salvarConfiguracao(it)
+                configurando = false
+            },
+            aoCancelar = { configurando = false },
+        )
     }
 
     estado.formulario?.let { formulario ->

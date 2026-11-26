@@ -61,7 +61,7 @@ object Estoque {
 
     // Comparação por minuto (as datas da tela não têm segundos); no mesmo minuto,
     // compras entram antes das saídas
-    private fun emOrdem(registros: List<Registro>) =
+    internal fun emOrdem(registros: List<Registro>) =
         registros.sortedWith(
             compareBy<Registro> { noMinuto(it.dataHora) }.thenBy { if (it is Registro.Compra) 0 else 1 },
         )
