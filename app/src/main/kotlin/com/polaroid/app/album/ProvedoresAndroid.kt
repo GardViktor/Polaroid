@@ -101,10 +101,12 @@ class ProvedorNomeLocalGeocoder(private val context: Context) : ProvedorNomeLoca
         }
 
         return endereco?.let {
-            listOfNotNull(it.subLocality, it.locality ?: it.subAdminArea)
-                .distinct()
-                .joinToString(", ")
-                .ifBlank { null }
+            EnderecoBrasil.montarNome(
+                bairro = it.subLocality,
+                cidade = it.locality,
+                municipio = it.subAdminArea,
+                linhaEndereco = if (it.maxAddressLineIndex >= 0) it.getAddressLine(0) else null,
+            )
         }
     }
 }
