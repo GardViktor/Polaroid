@@ -6,9 +6,9 @@ import kotlin.test.assertEquals
 class DestinoTest {
 
     @Test
-    fun `menu tem calculadora, busca, album e relatorios nessa ordem`() {
+    fun `menu tem busca, album, calculadora e relatorios nessa ordem`() {
         assertEquals(
-            listOf(Destino.CALCULADORA, Destino.BUSCAR, Destino.ALBUM, Destino.RELATORIOS),
+            listOf(Destino.BUSCAR, Destino.ALBUM, Destino.CALCULADORA, Destino.RELATORIOS),
             Destino.entries,
         )
     }
